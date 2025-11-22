@@ -8,7 +8,7 @@ obj.__index = obj
 
 -- Metadata
 obj.name = "AppCycler"
-obj.version = "1.0"
+obj.version = "1.1"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
 obj.homepage = "https://github.com/yourusername/hammerspoon-config"
@@ -18,7 +18,9 @@ obj.hotkeys = {}
 local lastExecutionTime = 0
 local minimumDelay = 0.15  -- 150ms entre execuções
 local isExecuting = false  -- Lock global
-local lastFocusedScreenId = nil
+
+-- Carregar utilitários comuns
+local managerMonitorsMac = require("common.managerMonitorsMac")
 
 -- ========== MÉTODOS PRIVADOS ==========
 
@@ -43,95 +45,71 @@ local function cycleAppsOnCurrentMonitor()
     isExecuting = true
     lastExecutionTime = currentTime
     
-    local currentWin = hs.window.focusedWindow()
-    if not currentWin then
+    -- Usar utilitário comum para pegar informações da janela em foco
+    local focusedInfo = managerMonitorsMac.getFocusedWindowInfo()
+    if not focusedInfo then
       isExecuting = false
       hs.alert.show("Nenhuma janela em foco", 1)
       return
     end
     
-    local currentScreen = currentWin:screen()
-    local targetScreenId = currentScreen:id()
-    local currentApp = currentWin:application()
+    local currentApp = focusedInfo.app
+    local targetScreenId = focusedInfo.screenId
     
-    print(string.format(">>> EXECUTANDO no Monitor ID: %s (%s)", targetScreenId, currentScreen:name()))
+    print(string.format(">>> EXECUTANDO no Monitor ID: %s (%s)", targetScreenId, focusedInfo.screenName))
     
-    local allWindows = hs.window.allWindows()
-    local allAppsOnScreen = {}
+    -- Usar utilitário comum para pegar apenas janelas visíveis no monitor
+    local visibleApps = managerMonitorsMac.getVisibleWindowsOnScreen(targetScreenId)
     
-    -- Pegar TODOS os apps APENAS do monitor alvo (EVITA DUPLICATAS)
-    for _, win in ipairs(allWindows) do
-      local app = win:application()
-      local winScreen = win:screen()
-      
-      if winScreen and winScreen:id() == targetScreenId and 
-         win:isStandard() and
-         win:subrole() ~= "AXUnknown" then
-        
-        -- Evitar duplicatas (mesmo app = uma entrada só)
-        local appAlreadyAdded = false
-        for _, existing in ipairs(allAppsOnScreen) do
-          if existing.app == app then
-            appAlreadyAdded = true
-            break
-          end
-        end
-        
-        if not appAlreadyAdded then
-          table.insert(allAppsOnScreen, {
-            window = win,
-            app = app,
-            name = app:name()
-          })
-        end
-      end
-    end
-    
-    if #allAppsOnScreen <= 1 then
+    if #visibleApps <= 1 then
       isExecuting = false
       hs.alert.show("Nenhum outro app neste monitor", 1)
       return
     end
     
-    table.sort(allAppsOnScreen, function(a, b)
+    -- Ordenar alfabeticamente por nome
+    table.sort(visibleApps, function(a, b)
       return a.name < b.name
     end)
     
+    -- Encontrar índice do app atual
     local currentIndex = 1
-    for i, appData in ipairs(allAppsOnScreen) do
+    for i, appData in ipairs(visibleApps) do
       if appData.app == currentApp then
         currentIndex = i
         break
       end
     end
     
+    -- Calcular próximo índice (circular)
     local nextIndex = currentIndex + 1
-    if nextIndex > #allAppsOnScreen then
+    if nextIndex > #visibleApps then
       nextIndex = 1
     end
     
-    local nextWindow = allAppsOnScreen[nextIndex].window
-    local nextApp = allAppsOnScreen[nextIndex].app
-    local nextName = allAppsOnScreen[nextIndex].name
+    local nextWindow = visibleApps[nextIndex].window
+    local nextApp = visibleApps[nextIndex].app
+    local nextName = visibleApps[nextIndex].name
     
-    -- Validação antes de ativar
+    -- Validação final: garantir que a janela ainda está no monitor correto
     if nextWindow:screen():id() ~= targetScreenId then
         isExecuting = false
         print(">>> ABORTADO: Janela não está no monitor correto")
         return
     end
     
-    -- Salvar o screen ID antes de ativar
-    lastFocusedScreenId = targetScreenId
-    
+    -- Ativar o app e focar na janela
     nextApp:activate()
-    nextWindow:focus()
+    hs.timer.doAfter(0.05, function()
+        nextWindow:focus()
+    end)
     
-    hs.alert.show(string.format("→ %s (%d/%d)", nextName, nextIndex, #allAppsOnScreen), 0.8)
-    print(string.format(">>> SUCESSO: %s (%d/%d)", nextName, nextIndex, #allAppsOnScreen))
+    hs.alert.show(string.format("→ %s (%d/%d)", nextName, nextIndex, #visibleApps), 0.8)
+    print(string.format(">>> SUCESSO: %s (%d/%d)", nextName, nextIndex, #visibleApps))
     
     isExecuting = false
 end
+
 
 -- ========== MÉTODOS PÚBLICOS ==========
 

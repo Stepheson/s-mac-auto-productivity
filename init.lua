@@ -4,7 +4,6 @@ print("==========================================")
 
 -- ===== CONFIGURAR PATH PARA COMMON UTILITIES =====
 package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
-local ManagerMonitorsMac = require("common.managerMonitorsMac")
 
 -- ===== LOAD SPOONS =====
 hs.loadSpoon("WindowManager")
@@ -18,13 +17,11 @@ end
 function startAll()
   spoon.WindowManager:start()
   spoon.AppCycler:start()
-  ManagerMonitorsMac.startMonitorWatcher()
 end
 
 function stoptAll()
   spoon.WindowManager:stop()
   spoon.AppCycler:stop()
-  ManagerMonitorsMac.stopMonitorWatcher()
 end
 
 -- ===== ATIVAR MÓDULOS NO LOAD =====
@@ -32,7 +29,6 @@ local modulesActive = true
 MuteMacHideShotcut()
 startAll()
 print("Módulos iniciados automaticamente")
-print("Alt+K: Ver nome do monitor atual")
 
 -- ===== CONTROLE DE ATIVAÇÃO DOS MÓDULOS =====
 -- Alt+Shift+0: Desativar módulos
