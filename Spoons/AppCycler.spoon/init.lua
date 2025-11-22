@@ -1,7 +1,7 @@
 --- === AppCycler ===
 ---
---- Alternância de aplicativos no mesmo monitor
---- Permite ciclar entre apps usando Alt+Tab
+--- Biblioteca de alternância de aplicativos no mesmo monitor
+--- NÃO conhece atalhos de teclado - apenas expõe ações
 
 local obj = {}
 obj.__index = obj
@@ -11,18 +11,16 @@ obj.name = "AppCycler"
 obj.version = "1.1"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
-obj.homepage = "https://github.com/yourusername/hammerspoon-config"
 
--- Internal state
-obj.hotkeys = {}
+-- Estado interno
 local lastExecutionTime = 0
-local minimumDelay = 0.15  -- 150ms entre execuções
-local isExecuting = false  -- Lock global
+local minimumDelay = 0.15
+local isExecuting = false
 
 -- Carregar utilitários comuns
 local managerMonitorsMac = require("common.managerMonitorsMac")
 
--- ========== MÉTODOS PRIVADOS ==========
+-- ========== LÓGICA INTERNA ==========
 
 local function cycleAppsOnCurrentMonitor()
     -- TRAVA: Prevenir execuções simultâneas
@@ -110,62 +108,30 @@ local function cycleAppsOnCurrentMonitor()
     isExecuting = false
 end
 
+-- ========== API PÚBLICA (AÇÕES) ==========
 
--- ========== MÉTODOS PÚBLICOS ==========
+-- Ação 1: Ciclar entre apps no monitor atual
+function obj:cycle()
+    cycleAppsOnCurrentMonitor()
+    return self
+end
+
+-- ========== LIFECYCLE ==========
 
 function obj:init()
   print("AppCycler Spoon: init() chamado")
   return self
 end
 
--- Configurar atalhos
-function obj:setupHotkeys()
-  print("AppCycler Spoon: Configurando atalhos...")
-  
-  -- Limpa hotkeys antigos
-  for _, hk in ipairs(self.hotkeys) do
-    hk:delete()
-  end
-  self.hotkeys = {}
-  
-  -- Alt+Tab: Ciclar entre apps do monitor atual
-  table.insert(self.hotkeys, hs.hotkey.bind({"alt"}, "tab", function()
-    cycleAppsOnCurrentMonitor()
-  end))
-  
-  print("AppCycler Spoon: " .. #self.hotkeys .. " atalho(s) configurado(s)!")
-end
-
--- Método público para ciclar manualmente
-function obj:cycle()
-  cycleAppsOnCurrentMonitor()
-  return self
-end
-
--- Iniciar módulo
 function obj:start()
-  self:setupHotkeys()
-  
-  hs.notify.new({
-    title="App Cycler", 
-    informativeText="Carregado!\nAlt+Tab: Ciclar apps no monitor atual"
-  }):send()
-  
-  print("App Cycler Spoon configurado com sucesso")
+  print("AppCycler Spoon: Pronto (aguardando atalhos de init.lua)")
   return self
 end
 
--- Método para parar e deletar todos os hotkeys
 function obj:stop()
-  print("AppCycler Spoon: stop() chamado")
-  
-  if self.hotkeys then
-    for _, hk in ipairs(self.hotkeys) do
-      hk:delete()
-    end
-    self.hotkeys = {}
-    print("AppCycler Spoon: todos os hotkeys deletados")
-  end
+  print("AppCycler Spoon: Parado")
+  -- Resetar estado interno
+  isExecuting = false
   return self
 end
 
