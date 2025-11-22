@@ -1,8 +1,5 @@
 local M = {}
 
--- Tabela para armazenar hotkeys
-M.hotkeys = {}
-
 -- ========== IDENTIFICAÇÃO DE MONITORES ==========
 
 function M.getMonitorByIndex(index)
@@ -28,62 +25,60 @@ function M.getMonitorByIndex(index)
     return monitorMap[index]
 end
 
--- ========== EXIBIR NOME DO MONITOR ATUAL ==========
+-- ========== UTILITÁRIOS DE JANELA E FOCO ==========
 
-function M.showCurrentMonitorName()
+-- Retorna informações completas sobre a janela/monitor em foco
+function M.getFocusedWindowInfo()
     local win = hs.window.focusedWindow()
-    if not win then 
-        hs.alert.show("❌ Nenhuma janela em foco", 3)
-        return 
+    if not win then
+        return nil
     end
     
     local screen = win:screen()
-    if not screen then 
-        hs.alert.show("❌ Monitor não detectado", 3)
-        return 
+    if not screen then
+        return nil
     end
     
-    local monitorId = screen:id()
-    local monitorName = screen:name() or "Monitor Desconhecido"
+    return {
+        window = win,
+        app = win:application(),
+        screen = screen,
+        screenId = screen:id(),
+        screenName = screen:name() or "Monitor Desconhecido"
+    }
+end
+
+-- Retorna apenas janelas visíveis em um monitor específico
+-- Filtra por mainWindow quando possível para pegar a janela principal de cada app
+function M.getVisibleWindowsOnScreen(screenId)
+    local visibleWindows = {}
+    local seenApps = {}
     
-    -- Determinar qual índice é este monitor
-    local monitorIndex = "?"
-    for i = 1, 3 do
-        local mon = M.getMonitorByIndex(i)
-        if mon and mon:id() == monitorId then
-            monitorIndex = i
-            break
+    -- Primeiro, tentar pegar as janelas principais (mainWindow)
+    local allWindows = hs.window.orderedWindows()  -- Ordenadas por Z-order (visibilidade)
+    
+    for _, win in ipairs(allWindows) do
+        if win:isStandard() and win:isVisible() then
+            local winScreen = win:screen()
+            local app = win:application()
+            
+            if winScreen and winScreen:id() == screenId and app then
+                local appName = app:name()
+                
+                -- Só adicionar se ainda não tivermos esse app
+                if not seenApps[appName] then
+                    seenApps[appName] = true
+                    table.insert(visibleWindows, {
+                        window = win,
+                        app = app,
+                        name = appName
+                    })
+                end
+            end
         end
     end
     
-    hs.alert.show(string.format("🖥 Monitor %s: %s", monitorIndex, monitorName), 2)
-    print(string.format("Monitor atual: [%s] %s (ID: %s)", monitorIndex, monitorName, monitorId))
-end
-
--- ========== CONTROLE DE HOTKEYS ==========
-
-function M.startMonitorWatcher()
-    -- Limpar hotkeys antigos
-    for _, hk in ipairs(M.hotkeys) do
-        hk:delete()
-    end
-    M.hotkeys = {}
-    
-    -- Alt+K: Mostrar nome do monitor atual
-    table.insert(M.hotkeys, hs.hotkey.bind({"alt"}, "k", function()
-        M.showCurrentMonitorName()
-    end))
-    
-    print("Manager Monitors Mac: Hotkey Alt+K configurado")
-end
-
-function M.stopMonitorWatcher()
-    -- Remover todos os hotkeys
-    for _, hk in ipairs(M.hotkeys) do
-        hk:delete()
-    end
-    M.hotkeys = {}
-    print("Manager Monitors Mac: Hotkey removido")
+    return visibleWindows
 end
 
 return M
