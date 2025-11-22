@@ -1,30 +1,5 @@
 local M = {}
 
--- ========== IDENTIFICAÇÃO DE MONITORES ==========
-
-function M.getMonitorByIndex(index)
-    local screens = hs.screen.allScreens()
-    local primaryScreen = hs.screen.primaryScreen()
-    local builtinScreen = nil
-    local externalScreens = {}
-    
-    for _, screen in ipairs(screens) do
-        if screen:name():find("Built%-in") or screen:name():find("Liquid") then
-            builtinScreen = screen
-        elseif screen ~= primaryScreen then
-            table.insert(externalScreens, screen)
-        end
-    end
-    
-    local monitorMap = {
-        [1] = primaryScreen,
-        [2] = externalScreens[1] or primaryScreen,
-        [3] = builtinScreen or externalScreens[2] or primaryScreen
-    }
-    
-    return monitorMap[index]
-end
-
 -- ========== UTILITÁRIOS DE JANELA E FOCO ==========
 
 -- Retorna informações completas sobre a janela/monitor em foco
@@ -79,6 +54,53 @@ function M.getVisibleWindowsOnScreen(screenId)
     end
     
     return visibleWindows
+end
+
+-- ========== BUSCA DE MONITORES POR NOME ==========
+
+-- Busca monitor por nome exato
+function M.getMonitorByName(monitorName)
+    local screens = hs.screen.allScreens()
+    
+    for _, screen in ipairs(screens) do
+        local screenName = screen:name()
+        if screenName == monitorName then
+            return screen
+        end
+    end
+    
+    return nil
+end
+
+-- Retorna lista de todos os monitores conectados com informações
+function M.getAllConnectedMonitors()
+    local screens = hs.screen.allScreens()
+    local monitors = {}
+    
+    for _, screen in ipairs(screens) do
+        table.insert(monitors, {
+            name = screen:name(),
+            id = screen:id(),
+            frame = screen:frame(),
+            isPrimary = (screen == hs.screen.primaryScreen())
+        })
+    end
+    
+    return monitors
+end
+
+-- Imprime lista de monitores conectados (útil para debug)
+function M.printConnectedMonitors()
+    local monitors = M.getAllConnectedMonitors()
+    
+    print("=== Monitores Conectados ===")
+    for i, mon in ipairs(monitors) do
+        local primary = mon.isPrimary and " (PRIMARY)" or ""
+        print(string.format("%d. %s%s", i, mon.name, primary))
+        print(string.format("   ID: %s", mon.id))
+        print(string.format("   Resolução: %dx%d", mon.frame.w, mon.frame.h))
+    end
+    print("============================")
 end
 
 return M

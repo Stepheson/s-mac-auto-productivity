@@ -1,0 +1,31 @@
+{
+  "monitors": [
+    {
+      "name": "DELL P2719H",
+      "order": 1,
+      "isMainMonitor": true,
+      "margins": {
+        "left": 0.043,
+        "top": 0.23,
+        "bottom": 0.02,
+        "right": 0
+      }
+    },
+    {
+      "name": "MX279",
+      "order": 2,
+      "isMainMonitor": false,
+      "margins": {
+        "left": 0.025
+      }
+    },
+    {
+      "name": "Built-in Retina Display",
+      "order": 3,
+      "isMainMonitor": false,
+      "margins": {
+        "left": 0.035
+      }
+    }
+  ]
+}
