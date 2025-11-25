@@ -1,7 +1,7 @@
 --- === AppCycler ===
 ---
---- Biblioteca de alternância de aplicativos no mesmo monitor
---- NÃO conhece atalhos de teclado - apenas expõe ações
+--- Application cycling library for same-monitor workflows
+--- Does NOT handle keyboard shortcuts - only exposes actions
 
 local obj = {}
 obj.__index = obj
@@ -12,65 +12,61 @@ obj.version = "1.1"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
 
--- Estado interno
+-- Internal state
 local lastExecutionTime = 0
 local minimumDelay = 0.15
 local isExecuting = false
 
--- Carregar utilitários comuns
 local managerMonitorsMac = require("common.managerMonitorsMac")
 
--- ========== LÓGICA INTERNA ==========
+-- ========== INTERNAL LOGIC ==========
 
 local function cycleAppsOnCurrentMonitor()
-    -- TRAVA: Prevenir execuções simultâneas
+    -- LOCK: Prevent simultaneous executions
     if isExecuting then
-      print(">>> BLOQUEADO: Já existe uma execução em andamento")
+      print(">>> BLOCKED: Execution already in progress")
       return
     end
     
-    -- DEBOUNCE: Prevenir execuções muito rápidas
+    -- DEBOUNCE: Prevent rapid executions
     local currentTime = hs.timer.secondsSinceEpoch()
     local timeSinceLastExecution = currentTime - lastExecutionTime
     
     if timeSinceLastExecution < minimumDelay then
-      print(string.format(">>> BLOQUEADO: Muito rápido (%.3fs desde última execução)", timeSinceLastExecution))
-      hs.alert.show("⏸ Aguarde...", 0.3)
+      print(string.format(">>> BLOCKED: Too fast (%.3fs since last execution)", timeSinceLastExecution))
+      hs.alert.show("⏸ Wait...", 0.3)
       return
     end
     
-    -- Ativar lock
     isExecuting = true
     lastExecutionTime = currentTime
     
-    -- Usar utilitário comum para pegar informações da janela em foco
     local focusedInfo = managerMonitorsMac.getFocusedWindowInfo()
     if not focusedInfo then
       isExecuting = false
-      hs.alert.show("Nenhuma janela em foco", 1)
+      hs.alert.show("No window in focus", 1)
       return
     end
     
     local currentApp = focusedInfo.app
     local targetScreenId = focusedInfo.screenId
     
-    print(string.format(">>> EXECUTANDO no Monitor ID: %s (%s)", targetScreenId, focusedInfo.screenName))
+    print(string.format(">>> EXECUTING on Monitor ID: %s (%s)", targetScreenId, focusedInfo.screenName))
     
-    -- Usar utilitário comum para pegar apenas janelas visíveis no monitor
     local visibleApps = managerMonitorsMac.getVisibleWindowsOnScreen(targetScreenId)
     
     if #visibleApps <= 1 then
       isExecuting = false
-      hs.alert.show("Nenhum outro app neste monitor", 1)
+      hs.alert.show("No other apps on this monitor", 1)
       return
     end
     
-    -- Ordenar alfabeticamente por nome
+    -- Sort alphabetically by name
     table.sort(visibleApps, function(a, b)
       return a.name < b.name
     end)
     
-    -- Encontrar índice do app atual
+    -- Find current app index
     local currentIndex = 1
     for i, appData in ipairs(visibleApps) do
       if appData.app == currentApp then
@@ -79,7 +75,7 @@ local function cycleAppsOnCurrentMonitor()
       end
     end
     
-    -- Calcular próximo índice (circular)
+    -- Calculate next index (circular)
     local nextIndex = currentIndex + 1
     if nextIndex > #visibleApps then
       nextIndex = 1
@@ -89,28 +85,29 @@ local function cycleAppsOnCurrentMonitor()
     local nextApp = visibleApps[nextIndex].app
     local nextName = visibleApps[nextIndex].name
     
-    -- Validação final: garantir que a janela ainda está no monitor correto
+    -- Final validation: ensure window is still on correct monitor
     if nextWindow:screen():id() ~= targetScreenId then
         isExecuting = false
-        print(">>> ABORTADO: Janela não está no monitor correto")
+        print(">>> ABORTED: Window not on correct monitor")
         return
     end
     
-    -- Ativar o app e focar na janela
+    -- Activate app and focus window
     nextApp:activate()
     hs.timer.doAfter(0.05, function()
         nextWindow:focus()
     end)
     
     hs.alert.show(string.format("→ %s (%d/%d)", nextName, nextIndex, #visibleApps), 0.8)
-    print(string.format(">>> SUCESSO: %s (%d/%d)", nextName, nextIndex, #visibleApps))
+    print(string.format(">>> SUCCESS: %s (%d/%d)", nextName, nextIndex, #visibleApps))
     
     isExecuting = false
 end
 
--- ========== API PÚBLICA (AÇÕES) ==========
+-- ========== PUBLIC API (ACTIONS) ==========
 
--- Ação 1: Ciclar entre apps no monitor atual
+--- Cycle between apps on current monitor
+-- @return self
 function obj:cycle()
     cycleAppsOnCurrentMonitor()
     return self
@@ -119,18 +116,17 @@ end
 -- ========== LIFECYCLE ==========
 
 function obj:init()
-  print("AppCycler Spoon: init() chamado")
+  print("AppCycler Spoon: init() called")
   return self
 end
 
 function obj:start()
-  print("AppCycler Spoon: Pronto (aguardando atalhos de init.lua)")
+  print("AppCycler Spoon: Ready (waiting for hotkeys from init.lua)")
   return self
 end
 
 function obj:stop()
-  print("AppCycler Spoon: Parado")
-  -- Resetar estado interno
+  print("AppCycler Spoon: Stopped")
   isExecuting = false
   return self
 end

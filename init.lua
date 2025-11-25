@@ -1,81 +1,75 @@
 print("==========================================")
-print("Carregando Hammerspoon...")
+print("Loading Hammerspoon...")
 print("==========================================")
 
--- ===== CONFIGURAR PATH PARA COMMON UTILITIES =====
+-- ========== CONFIGURE PATH FOR COMMON UTILITIES ==========
 package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
 
--- ===== CARREGAR CONFIGURAÇÃO JSON (CENTRALIZADO) =====
+-- ========== LOAD JSON CONFIGURATION ==========
 local configParser = require("common.configParser")
 local configPath = hs.configdir .. "/ProfileSettings.json"
 local appConfig = configParser.loadConfig(configPath)
 
--- ===== CARREGAR SPOONS =====
+-- ========== LOAD SPOONS ==========
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
 
--- ===== INJETAR CONFIGURAÇÃO NOS SPOONS =====
+-- ========== INJECT CONFIGURATION INTO SPOONS ==========
 spoon.MonitorWindowApp:setConfig(appConfig)
 
--- ===== GERENCIAMENTO CENTRALIZADO DE ATALHOS =====
+-- ========== CENTRALIZED HOTKEY MANAGEMENT ==========
 local globalHotkeys = {}
 
 function registerAllHotkeys()
   print("==========================================")
-  print("Registrando atalhos centralizados...")
+  print("Registering centralized hotkeys...")
   print("==========================================")
   
-  -- Limpar atalhos antigos
+  -- Clear old hotkeys
   for _, hk in ipairs(globalHotkeys) do
     hk:delete()
   end
   globalHotkeys = {}
   
-  -- ========== ATALHOS DE NAVEGAÇÃO E SAVE (MONITORES 1-4) ==========
-  -- Alt+[1-4]: Mover para monitor E salvar posição automaticamente
+  -- ========== MONITOR NAVIGATION & SAVE (1-4) ==========
   for i = 1, 4 do
     table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, tostring(i), function()
-      spoon.MonitorWindowApp:moveToMonitor(i, true)  -- shouldSave = true
+      spoon.MonitorWindowApp:moveToMonitor(i, true)
     end))
   end
-  print("  Alt+[1-4] -> Mover para monitor e SALVAR (máx 4 monitores)")
+  print("  Alt+[1-4] -> Move to monitor and SAVE (max 4 monitors)")
   
   
-  -- ========== ATALHO DE LOAD (RESTAURAR POSIÇÕES) ==========
+  -- ========== LOAD HOTKEYS (RESTORE POSITIONS) ==========
   table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "6", function()
-    -- Alt+6: Restaurar posições salvas (por window_id)
     spoon.MonitorWindowApp:loadPosition()
   end))
-  print("  Alt+6 -> Restaurar posições (window_id)")
+  print("  Alt+6 -> Restore positions (window_id)")
   
   table.insert(globalHotkeys, hs.hotkey.bind({"alt", "shift"}, "6", function()
-    -- Alt+Shift+6: Restaurar posições FORCE (por app_name)
     spoon.MonitorWindowApp:loadPosition(true)
   end))
-  print("  Alt+Shift+6 -> Restaurar posições FORCE (app_name)")
+  print("  Alt+Shift+6 -> Restore positions FORCE (app_name)")
   
-  -- ========== ATALHOS DE ALTERNÂNCIA DE APPS ==========
+  -- ========== APP CYCLING HOTKEYS ==========
   table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "tab", function()
-    -- Alt+Tab: Ciclar apps no monitor atual
     spoon.AppCycler:cycle()
   end))
   print("  Alt+Tab -> AppCycler:cycle()")
   
-  -- ========== ATALHOS DE DEBUG ==========
+  -- ========== DEBUG HOTKEYS ==========
   table.insert(globalHotkeys, hs.hotkey.bind({"alt", "shift"}, "m", function()
-    -- Alt+Shift+M: Mostrar monitores conectados
     local managerMonitorsMac = require("common.managerMonitorsMac")
     managerMonitorsMac.printConnectedMonitors()
   end))
-  print("  Alt+Shift+M -> Debug: mostrar monitores")
+  print("  Alt+Shift+M -> Debug: show connected monitors")
   
-  -- ========== ATALHOS DE SISTEMA ==========
-  -- Cmd+H: Muted (desabilitar hide padrão do Mac)
+  -- ========== SYSTEM HOTKEYS ==========
   table.insert(globalHotkeys, hs.hotkey.bind({"cmd"}, "h", function() end))
-  print("  Cmd+H -> Muted (Mac Hide desabilitado)")
+  print("  Cmd+H -> Muted (Mac Hide disabled)")
   
   print("==========================================")
-  print(string.format("Total: %d atalho(s) registrado(s)", #globalHotkeys))
+  print(string.format("Total: %d hotkey(s) registered", #globalHotkeys))
   print("==========================================")
 end
 
@@ -84,51 +78,49 @@ function unregisterAllHotkeys()
     hk:delete()
   end
   globalHotkeys = {}
-  print("Todos os atalhos removidos")
+  print("All hotkeys removed")
 end
 
--- ===== CICLO DE VIDA DOS MÓDULOS =====
+-- ========== MODULE LIFECYCLE ==========
 
 function startAll()
   spoon.MonitorWindowApp:start()
   spoon.AppCycler:start()
   registerAllHotkeys()
-  hs.alert.show("🟢 Hammerspoon Ativo")
+  hs.alert.show("🟢 Hammerspoon Active")
 end
 
 function stopAll()
   unregisterAllHotkeys()
   spoon.MonitorWindowApp:stop()
   spoon.AppCycler:stop()
-  hs.alert.show("🔴 Hammerspoon Inativo")
+  hs.alert.show("🔴 Hammerspoon Inactive")
 end
 
--- ===== INICIALIZAÇÃO =====
+-- ========== INITIALIZATION ==========
 local modulesActive = true
 startAll()
-print("Módulos iniciados automaticamente")
+print("Modules started automatically")
 
--- ===== CONTROLES GLOBAIS =====
+-- ========== GLOBAL CONTROLS ==========
 
--- Alt+Shift+0: Desativar todos os módulos
 hs.hotkey.bind({"alt", "shift"}, "0", function()
   if modulesActive then
-    print("Desativando módulos...")
+    print("Deactivating modules...")
     stopAll()
     modulesActive = false
   end
 end)
 
--- Alt+Shift+1: Ativar todos os módulos
 hs.hotkey.bind({"alt", "shift"}, "1", function()
   if not modulesActive then
-    print("Ativando módulos...")
+    print("Activating modules...")
     startAll()
     modulesActive = true
   end
 end)
 
--- ===== AUTO RELOAD =====
+-- ========== AUTO RELOAD ==========
 function reloadConfig(files)
   local doReload = false
   for _, file in pairs(files) do
@@ -144,5 +136,5 @@ end
 local configWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
 
 print("==========================================")
-print("Hammerspoon carregado com sucesso!")
+print("Hammerspoon loaded successfully!")
 print("==========================================")
