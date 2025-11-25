@@ -87,14 +87,36 @@ function startAll()
   spoon.MonitorWindowApp:start()
   spoon.AppCycler:start()
   registerAllHotkeys()
-  hs.alert.show("🟢 Hammerspoon Active")
+  
+  -- Build list of active Spoons
+  local activeSpoons = {}
+  if spoon.MonitorWindowApp then
+    table.insert(activeSpoons, "• " .. spoon.MonitorWindowApp.name)
+  end
+  if spoon.AppCycler then
+    table.insert(activeSpoons, "• " .. spoon.AppCycler.name)
+  end
+  
+  local message = "Spoons Active:\n" .. table.concat(activeSpoons, "\n")
+  hs.alert.show("🟢 " .. message)
 end
 
 function stopAll()
   unregisterAllHotkeys()
   spoon.MonitorWindowApp:stop()
   spoon.AppCycler:stop()
-  hs.alert.show("🔴 Hammerspoon Inactive")
+  
+  -- Build list of stopped Spoons
+  local stoppedSpoons = {}
+  if spoon.MonitorWindowApp then
+    table.insert(stoppedSpoons, "• " .. spoon.MonitorWindowApp.name)
+  end
+  if spoon.AppCycler then
+    table.insert(stoppedSpoons, "• " .. spoon.AppCycler.name)
+  end
+  
+  local message = "Spoons Inactive:\n" .. table.concat(stoppedSpoons, "\n")
+  hs.alert.show("🔴 " .. message)
 end
 
 -- ========== INITIALIZATION ==========
@@ -124,11 +146,14 @@ end)
 function reloadConfig(files)
   local doReload = false
   for _, file in pairs(files) do
-    if file:sub(-4) == ".lua" or file:sub(-5) == ".json" then
+    -- Ignore storage directory (contains position data that shouldn't trigger reload)
+    if not file:match("storage/") and (file:sub(-4) == ".lua" or file:sub(-5) == ".json") then
       doReload = true
+      print(string.format("[AutoReload] Change detected: %s", file))
     end
   end
   if doReload then
+    print("[AutoReload] Reloading Hammerspoon...")
     hs.reload()
   end
 end
