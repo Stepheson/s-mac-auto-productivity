@@ -1,16 +1,18 @@
 local M = {}
 
--- Cache da configuração carregada
+-- Configuration cache
 local cachedConfig = nil
 
--- ========== CARREGAMENTO E PARSING ==========
+-- ========== LOADING AND PARSING ==========
 
--- RESPONSABILIDADE ÚNICA: Parse JSON
+--- Load and parse JSON configuration file
+-- @param filePath string Path to ProfileSettings.json
+-- @return table Parsed configuration or empty table on error
 function M.loadConfig(filePath)
     local file = io.open(filePath, "r")
     if not file then
-        print("⚠️  ProfileSettings.json não encontrado em: " .. filePath)
-        print("   Usando configuração padrão vazia")
+        print("⚠️  ProfileSettings.json not found at: " .. filePath)
+        print("   Using default empty configuration")
         cachedConfig = {}
         return cachedConfig
     end
@@ -18,30 +20,30 @@ function M.loadConfig(filePath)
     local content = file:read("*all")
     file:close()
     
-    -- Parse JSON usando hs.json nativo
     local success, config = pcall(hs.json.decode, content)
     if not success then
-        print("❌ Erro ao parsear ProfileSettings.json:")
+        print("❌ Error parsing ProfileSettings.json:")
         print("   " .. tostring(config))
-        print("   Usando configuração padrão vazia")
+        print("   Using default empty configuration")
         cachedConfig = {}
         return cachedConfig
     end
     
     cachedConfig = config
-    print("✅ ProfileSettings.json carregado com sucesso")
+    print("✅ ProfileSettings.json loaded successfully")
     
     return cachedConfig
 end
 
--- ========== ACESSO AO CACHE ==========
+-- ========== CACHE ACCESS ==========
 
--- Retorna cache atual
+--- Get current cached configuration
+-- @return table Cached configuration or empty table
 function M.getCachedConfig()
     return cachedConfig or {}
 end
 
--- Limpa cache (útil para reload)
+--- Clear cache (useful for reload)
 function M.clearCache()
     cachedConfig = nil
 end
