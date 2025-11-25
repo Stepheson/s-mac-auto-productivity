@@ -9,12 +9,12 @@ function M.getFocusedWindowInfo()
     if not win then
         return nil
     end
-    
+
     local screen = win:screen()
     if not screen then
         return nil
     end
-    
+
     return {
         window = win,
         app = win:application(),
@@ -31,17 +31,17 @@ end
 function M.getVisibleWindowsOnScreen(screenId)
     local visibleWindows = {}
     local seenApps = {}
-    
+
     local allWindows = hs.window.orderedWindows()
-    
+
     for _, win in ipairs(allWindows) do
         if win:isStandard() and win:isVisible() then
             local winScreen = win:screen()
             local app = win:application()
-            
+
             if winScreen and winScreen:id() == screenId and app then
                 local appName = app:name()
-                
+
                 if not seenApps[appName] then
                     seenApps[appName] = true
                     table.insert(visibleWindows, {
@@ -53,7 +53,7 @@ function M.getVisibleWindowsOnScreen(screenId)
             end
         end
     end
-    
+
     return visibleWindows
 end
 
@@ -64,23 +64,23 @@ end
 -- @return userdata|nil Screen object or nil if not found
 function M.getMonitorByName(monitorName)
     local screens = hs.screen.allScreens()
-    
+
     for _, screen in ipairs(screens) do
         local screenName = screen:name()
         if screenName == monitorName then
             return screen
         end
     end
-    
+
     return nil
 end
 
 --- Get list of all connected monitors with information
 -- @return table Array of monitor information objects
 function M.getAllConnectedMonitors()
-   local screens = hs.screen.allScreens()
+    local screens = hs.screen.allScreens()
     local monitors = {}
-    
+
     for _, screen in ipairs(screens) do
         table.insert(monitors, {
             name = screen:name(),
@@ -89,14 +89,14 @@ function M.getAllConnectedMonitors()
             isPrimary = (screen == hs.screen.primaryScreen())
         })
     end
-    
+
     return monitors
 end
 
 --- Print list of connected monitors (useful for debugging)
 function M.printConnectedMonitors()
     local monitors = M.getAllConnectedMonitors()
-    
+
     print("=== Connected Monitors ===")
     for i, mon in ipairs(monitors) do
         local primary = mon.isPrimary and " (PRIMARY)" or ""

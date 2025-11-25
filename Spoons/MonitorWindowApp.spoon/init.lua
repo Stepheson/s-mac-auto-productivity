@@ -44,12 +44,12 @@ end
 
 local function calculateTargetFrame(screenFrame, margins)
     margins = margins or {}
-    
+
     local left = margins.left or 0
     local top = margins.top or 0
     local bottom = margins.bottom or 0
     local right = margins.right or 0
-    
+
     return {
         x = screenFrame.x + math.floor(screenFrame.w * left),
         y = screenFrame.y + math.floor(screenFrame.h * top),
@@ -63,21 +63,21 @@ end
 -- @param targetWindow userdata (optional) Window object to move, uses focused window if nil
 local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     local win = targetWindow or hs.window.focusedWindow()
-    if not win then 
-        hs.notify.new({title="Hammerspoon", informativeText="No window in focus"}):send()
-        return 
+    if not win then
+        hs.notify.new({ title = "Hammerspoon", informativeText = "No window in focus" }):send()
+        return
     end
-    
+
     local targetScreen = managerMonitorsMac.getMonitorByName(monitorConfig.name)
-    
+
     if not targetScreen then
         print(string.format("Monitor '%s' not found (disconnected)", monitorConfig.name))
         return
     end
-    
+
     local screenFrame = targetScreen:frame()
     local currentFrame = win:frame()
-    
+
     -- STEP 1: Move to center of monitor
     local tempFrame = {
         x = screenFrame.x + (screenFrame.w - currentFrame.w) / 2,
@@ -85,20 +85,20 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
         w = currentFrame.w,
         h = currentFrame.h
     }
-    
+
     win:setFrame(tempFrame, 0)
-    
+
     -- STEP 2: Apply margins after delay
     hs.timer.doAfter(0.2, function()
         win:focus()
-        
+
         local targetFrame = calculateTargetFrame(screenFrame, monitorConfig.margins)
         win:setFrame(targetFrame, 0)
-        
+
         print(string.format("Window moved to %s", monitorConfig.name))
         hs.notify.new({
-            title="Hammerspoon", 
-            informativeText=string.format("Moved to %s", monitorConfig.name)
+            title = "Hammerspoon",
+            informativeText = string.format("Moved to %s", monitorConfig.name)
         }):send()
     end)
 end
@@ -113,7 +113,7 @@ function obj:moveToMonitor(order, shouldSave)
     local config = getMonitorConfigByOrder(order)
     if config then
         moveWindowToMonitorInternal(config)
-        
+
         if shouldSave then
             self:saveCurrentPosition(order)
         end
@@ -127,11 +127,11 @@ end
 -- @return string Information string with monitor status
 function obj:getMonitorInfo()
     local info = "Configured monitors:\n"
-    
+
     for i, config in ipairs(monitorConfigs) do
         local connected = managerMonitorsMac.getMonitorByName(config.name) ~= nil
         local status = connected and "✓ Connected" or "✗ Disconnected"
-        
+
         local marginInfo = ""
         if config.margins then
             local m = config.margins
@@ -141,11 +141,11 @@ function obj:getMonitorInfo()
                 (m.bottom or 0) * 100,
                 (m.right or 0) * 100)
         end
-        
-        info = info .. string.format("%d. [Order:%d] %s %s%s\n", 
-          i, config.order, status, config.name, marginInfo)
+
+        info = info .. string.format("%d. [Order:%d] %s %s%s\n",
+            i, config.order, status, config.name, marginInfo)
     end
-    
+
     return info
 end
 
@@ -163,29 +163,29 @@ end
 -- @return boolean true if saved successfully
 function obj:saveCurrentPosition(order)
     local win = hs.window.focusedWindow()
-    
+
     if not win then
         print("[MonitorWindowApp] No window in focus to save")
         return false
     end
-    
+
     local data = storageManager.load("MonitorWindowApp")
     if not data.window_positions then
         data.window_positions = {}
     end
-    
+
     local windowId = tostring(win:id())
     local app = win:application()
-    
+
     data.window_positions[windowId] = {
         app_name = app and app:name() or "Unknown",
         monitor_order = order
     }
-    
+
     storageManager.save("MonitorWindowApp", data)
-    print(string.format("[Save] %s (ID:%s) -> Monitor order %d", 
+    print(string.format("[Save] %s (ID:%s) -> Monitor order %d",
         data.window_positions[windowId].app_name, windowId, order))
-    
+
     self:scheduleGarbageCollection()
     return true
 end
@@ -195,7 +195,7 @@ end
 -- @return self
 function obj:loadPosition(force)
     local data = storageManager.load("MonitorWindowApp")
-    
+
     if not data.window_positions or next(data.window_positions) == nil then
         hs.notify.new({
             title = "MonitorWindowApp",
@@ -204,34 +204,34 @@ function obj:loadPosition(force)
         print("[Load] No saved positions")
         return self
     end
-    
+
     local allWindows = hs.window.allWindows()
     local restored = 0
-    
+
     if force then
         -- FORCE MODE: Match by app_name (ignores window_id)
         print("[Load] FORCE mode activated - using app_name")
-        
+
         local appPositions = {}
         for _, savedPos in pairs(data.window_positions) do
             if savedPos.app_name and savedPos.monitor_order then
                 appPositions[savedPos.app_name] = savedPos.monitor_order
             end
         end
-        
+
         for _, win in ipairs(allWindows) do
             if win:isStandard() and win:isVisible() then
                 local app = win:application()
                 if app then
                     local appName = app:name()
                     local monitorOrder = appPositions[appName]
-                    
+
                     if monitorOrder then
                         local config = getMonitorConfigByOrder(monitorOrder)
                         if config then
                             moveWindowToMonitorInternal(config, win)
                             restored = restored + 1
-                            print(string.format("[Load-Force] %s -> Monitor order %d", 
+                            print(string.format("[Load-Force] %s -> Monitor order %d",
                                 appName, monitorOrder))
                         end
                     end
@@ -244,25 +244,25 @@ function obj:loadPosition(force)
             if win:isStandard() and win:isVisible() then
                 local windowId = tostring(win:id())
                 local savedPos = data.window_positions[windowId]
-                
+
                 if savedPos then
                     local config = getMonitorConfigByOrder(savedPos.monitor_order)
                     if config then
                         moveWindowToMonitorInternal(config, win)
                         restored = restored + 1
-                        print(string.format("[Load] %s (ID:%s) -> Monitor order %d", 
+                        print(string.format("[Load] %s (ID:%s) -> Monitor order %d",
                             savedPos.app_name, windowId, savedPos.monitor_order))
                     end
                 end
             end
         end
     end
-    
+
     hs.notify.new({
         title = "MonitorWindowApp",
         informativeText = string.format("%d window(s) restored", restored)
     }):send()
-    
+
     return self
 end
 
@@ -271,27 +271,27 @@ function obj:scheduleGarbageCollection()
     if gcTimer then
         gcTimer:stop()
     end
-    
+
     gcTimer = hs.timer.doAfter(10, function()
         self:cleanupStaleEntries()
     end)
-    
+
     print("[GC] Garbage collection scheduled for 10s")
 end
 
 --- Clean up stale entries from storage
 function obj:cleanupStaleEntries()
     local data = storageManager.load("MonitorWindowApp")
-    
+
     if not data.window_positions then
         return
     end
-    
+
     local activeWindows = {}
     for _, win in ipairs(hs.window.allWindows()) do
         activeWindows[tostring(win:id())] = true
     end
-    
+
     local removed = 0
     for windowId, entry in pairs(data.window_positions) do
         if not activeWindows[windowId] then
@@ -300,7 +300,7 @@ function obj:cleanupStaleEntries()
             print(string.format("[GC] Removed stale ID: %s (%s)", windowId, entry.app_name))
         end
     end
-    
+
     if removed > 0 then
         storageManager.save("MonitorWindowApp", data)
         print(string.format("[GC] %d entry/entries removed", removed))
