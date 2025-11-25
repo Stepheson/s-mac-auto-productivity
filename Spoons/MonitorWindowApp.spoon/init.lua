@@ -15,6 +15,10 @@ obj.license = "MIT"
 -- Estado interno
 local monitorConfigs = {}
 local managerMonitorsMac = require("common.managerMonitorsMac")
+local storageManager = require("common.storageManager")
+
+-- Garbage collection timer
+local gcTimer = nil
 
 -- ========== CONFIGURAÇÃO ==========
 
@@ -51,8 +55,9 @@ local function calculateTargetFrame(screenFrame, margins)
     }
 end
 
-local function moveWindowToMonitorInternal(monitorConfig)
-    local win = hs.window.focusedWindow()
+local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
+    -- Se targetWindow não for passado, usar janela em foco
+    local win = targetWindow or hs.window.focusedWindow()
     if not win then 
         hs.notify.new({title="Hammerspoon", informativeText="Nenhuma janela em foco"}):send()
         return 
@@ -97,10 +102,17 @@ end
 -- ========== API PÚBLICA (AÇÕES) ==========
 
 -- Ação 1: Mover janela para monitor por ordem
-function obj:moveToMonitor(order)
+-- @param order number Order do monitor (1-9)
+-- @param shouldSave boolean (opcional) Se true, salva a posição
+function obj:moveToMonitor(order, shouldSave)
     local config = getMonitorConfigByOrder(order)
     if config then
         moveWindowToMonitorInternal(config)
+        
+        -- Save position if requested
+        if shouldSave then
+            self:saveCurrentPosition(order)
+        end
     else
         print(string.format("⚠️  Nenhum monitor configurado com order=%d", order))
     end
@@ -135,6 +147,170 @@ end
 -- Ação 3: Recarregar configuração
 function obj:reloadConfig(newConfig)
     return self:setConfig(newConfig)
+end
+
+-- ========== STATE PERSISTENCE ==========
+
+-- Ação 4: Salvar posição da janela em foco
+function obj:saveCurrentPosition(order)
+    local win = hs.window.focusedWindow()
+    
+    if not win then
+        print("[MonitorWindowApp] Nenhuma janela em foco para salvar")
+        return false
+    end
+    
+    -- Load existing data
+    local data = storageManager.load("MonitorWindowApp")
+    if not data.window_positions then
+        data.window_positions = {}
+    end
+    
+    -- Save window position
+    local windowId = tostring(win:id())
+    local app = win:application()
+    
+    data.window_positions[windowId] = {
+        app_name = app and app:name() or "Unknown",
+        monitor_order = order
+    }
+    
+    storageManager.save("MonitorWindowApp", data)
+    print(string.format("[Save] %s (ID:%s) -> Monitor order %d", 
+        data.window_positions[windowId].app_name, windowId, order))
+    
+    -- Schedule garbage collection
+    self:scheduleGarbageCollection()
+    return true
+end
+
+-- Ação 5: Restaurar posições de todas as janelas abertas
+-- @param force boolean (opcional) Se true, ignora window_id e usa apenas app_name
+function obj:loadPosition(force)
+    local data = storageManager.load("MonitorWindowApp")
+    
+    if not data.window_positions or next(data.window_positions) == nil then
+        hs.notify.new({
+            title = "MonitorWindowApp",
+            informativeText = "Nenhuma posição salva encontrada"
+        }):send()
+        print("[Load] Nenhuma posição salva")
+        return self
+    end
+    
+    -- Get all open windows
+    local allWindows = hs.window.allWindows()
+    local restored = 0
+    
+    if force then
+        -- FORCE MODE: Match by app_name (ignora window_id)
+        print("[Load] Modo FORCE ativado - usando app_name")
+        
+        -- Build app_name -> monitor_order map
+        local appPositions = {}
+        for _, savedPos in pairs(data.window_positions) do
+            if savedPos.app_name and savedPos.monitor_order then
+                appPositions[savedPos.app_name] = savedPos.monitor_order
+            end
+        end
+        
+        -- Restore by app name
+        for _, win in ipairs(allWindows) do
+            if win:isStandard() and win:isVisible() then
+                local app = win:application()
+                if app then
+                    local appName = app:name()
+                    local monitorOrder = appPositions[appName]
+                    
+                    if monitorOrder then
+                        local config = getMonitorConfigByOrder(monitorOrder)
+                        if config then
+                            -- Pass window reference directly to avoid focus issues
+                            moveWindowToMonitorInternal(config, win)
+                            restored = restored + 1
+                            print(string.format("[Load-Force] %s -> Monitor order %d", 
+                                appName, monitorOrder))
+                        end
+                    end
+                end
+            end
+        end
+    else
+        -- NORMAL MODE: Match by window_id
+        for _, win in ipairs(allWindows) do
+            if win:isStandard() and win:isVisible() then
+                local windowId = tostring(win:id())
+                local savedPos = data.window_positions[windowId]
+                
+                if savedPos then
+                    -- Restore position
+                    local config = getMonitorConfigByOrder(savedPos.monitor_order)
+                    if config then
+                        -- Pass window reference directly to avoid focus issues
+                        moveWindowToMonitorInternal(config, win)
+                        restored = restored + 1
+                        print(string.format("[Load] %s (ID:%s) -> Monitor order %d", 
+                            savedPos.app_name, windowId, savedPos.monitor_order))
+                    end
+                end
+            end
+        end
+    end
+    
+    hs.notify.new({
+        title = "MonitorWindowApp",
+        informativeText = string.format("%d janela(s) restaurada(s)", restored)
+    }):send()
+    
+    return self
+end
+
+-- Ação 6: Agendar garbage collection
+function obj:scheduleGarbageCollection()
+    -- Cancel existing timer
+    if gcTimer then
+        gcTimer:stop()
+    end
+    
+    -- Schedule new cleanup
+    gcTimer = hs.timer.doAfter(10, function()
+        self:cleanupStaleEntries()
+    end)
+    
+    print("[GC] Garbage collection agendado para 10s")
+end
+
+-- Ação 7: Limpar entradas obsoletas
+function obj:cleanupStaleEntries()
+    local data = storageManager.load("MonitorWindowApp")
+    
+    if not data.window_positions then
+        return
+    end
+    
+    -- Get all active window IDs
+    local activeWindows = {}
+    for _, win in ipairs(hs.window.allWindows()) do
+        activeWindows[tostring(win:id())] = true
+    end
+    
+    -- Remove stale entries
+    local removed = 0
+    for windowId, entry in pairs(data.window_positions) do
+        if not activeWindows[windowId] then
+            data.window_positions[windowId] = nil
+            removed = removed + 1
+            print(string.format("[GC] Removido ID obsoleto: %s (%s)", windowId, entry.app_name))
+        end
+    end
+    
+    -- Save cleaned data
+    if removed > 0 then
+        storageManager.save("MonitorWindowApp", data)
+        print(string.format("[GC] %d entrada(s) removida(s)", removed))
+    else
+        print("[GC] Nenhuma entrada obsoleta encontrada")
+    end
 end
 
 -- ========== LIFECYCLE ==========

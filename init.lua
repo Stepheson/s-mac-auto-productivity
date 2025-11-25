@@ -31,24 +31,28 @@ function registerAllHotkeys()
   end
   globalHotkeys = {}
   
-  -- ========== ATALHOS DE NAVEGAÇÃO DE MONITORES ==========
-  table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "1", function()
-      -- Alt+1: Mover para monitor order=1
-    spoon.MonitorWindowApp:moveToMonitor(1)
-  end))
-  print("  Alt+1 -> MonitorWindowApp:moveToMonitor(1)")
+  -- ========== ATALHOS DE NAVEGAÇÃO E SAVE (MONITORES 1-4) ==========
+  -- Alt+[1-4]: Mover para monitor E salvar posição automaticamente
+  for i = 1, 4 do
+    table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, tostring(i), function()
+      spoon.MonitorWindowApp:moveToMonitor(i, true)  -- shouldSave = true
+    end))
+  end
+  print("  Alt+[1-4] -> Mover para monitor e SALVAR (máx 4 monitores)")
   
-  table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "2", function()
-    -- Alt+2: Mover para monitor order=2
-    spoon.MonitorWindowApp:moveToMonitor(2)
-  end))
-  print("  Alt+2 -> MonitorWindowApp:moveToMonitor(2)")
   
-  table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "3", function()
-    -- Alt+3: Mover para monitor order=3
-    spoon.MonitorWindowApp:moveToMonitor(3)
+  -- ========== ATALHO DE LOAD (RESTAURAR POSIÇÕES) ==========
+  table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "6", function()
+    -- Alt+6: Restaurar posições salvas (por window_id)
+    spoon.MonitorWindowApp:loadPosition()
   end))
-  print("  Alt+3 -> MonitorWindowApp:moveToMonitor(3)")
+  print("  Alt+6 -> Restaurar posições (window_id)")
+  
+  table.insert(globalHotkeys, hs.hotkey.bind({"alt", "shift"}, "6", function()
+    -- Alt+Shift+6: Restaurar posições FORCE (por app_name)
+    spoon.MonitorWindowApp:loadPosition(true)
+  end))
+  print("  Alt+Shift+6 -> Restaurar posições FORCE (app_name)")
   
   -- ========== ATALHOS DE ALTERNÂNCIA DE APPS ==========
   table.insert(globalHotkeys, hs.hotkey.bind({"alt"}, "tab", function()
