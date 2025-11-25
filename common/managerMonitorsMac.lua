@@ -1,8 +1,9 @@
 local M = {}
 
--- ========== UTILITÁRIOS DE JANELA E FOCO ==========
+-- ========== WINDOW AND FOCUS UTILITIES ==========
 
--- Retorna informações completas sobre a janela/monitor em foco
+--- Get complete information about focused window and monitor
+-- @return table|nil Information table with window, app, screen, screenId, screenName or nil if no focus
 function M.getFocusedWindowInfo()
     local win = hs.window.focusedWindow()
     if not win then
@@ -19,18 +20,19 @@ function M.getFocusedWindowInfo()
         app = win:application(),
         screen = screen,
         screenId = screen:id(),
-        screenName = screen:name() or "Monitor Desconhecido"
+        screenName = screen:name() or "Unknown Monitor"
     }
 end
 
--- Retorna apenas janelas visíveis em um monitor específico
--- Filtra por mainWindow quando possível para pegar a janela principal de cada app
+--- Get only visible windows on a specific monitor
+-- Filters by mainWindow when possible to get the main window of each app
+-- @param screenId userdata Screen ID to filter windows
+-- @return table Array of {window, app, name} for visible windows
 function M.getVisibleWindowsOnScreen(screenId)
     local visibleWindows = {}
     local seenApps = {}
     
-    -- Primeiro, tentar pegar as janelas principais (mainWindow)
-    local allWindows = hs.window.orderedWindows()  -- Ordenadas por Z-order (visibilidade)
+    local allWindows = hs.window.orderedWindows()
     
     for _, win in ipairs(allWindows) do
         if win:isStandard() and win:isVisible() then
@@ -40,7 +42,6 @@ function M.getVisibleWindowsOnScreen(screenId)
             if winScreen and winScreen:id() == screenId and app then
                 local appName = app:name()
                 
-                -- Só adicionar se ainda não tivermos esse app
                 if not seenApps[appName] then
                     seenApps[appName] = true
                     table.insert(visibleWindows, {
@@ -56,9 +57,11 @@ function M.getVisibleWindowsOnScreen(screenId)
     return visibleWindows
 end
 
--- ========== BUSCA DE MONITORES POR NOME ==========
+-- ========== MONITOR SEARCH ==========
 
--- Busca monitor por nome exato
+--- Find monitor by exact name
+-- @param monitorName string Exact monitor name
+-- @return userdata|nil Screen object or nil if not found
 function M.getMonitorByName(monitorName)
     local screens = hs.screen.allScreens()
     
@@ -72,9 +75,10 @@ function M.getMonitorByName(monitorName)
     return nil
 end
 
--- Retorna lista de todos os monitores conectados com informações
+--- Get list of all connected monitors with information
+-- @return table Array of monitor information objects
 function M.getAllConnectedMonitors()
-    local screens = hs.screen.allScreens()
+   local screens = hs.screen.allScreens()
     local monitors = {}
     
     for _, screen in ipairs(screens) do
@@ -89,18 +93,18 @@ function M.getAllConnectedMonitors()
     return monitors
 end
 
--- Imprime lista de monitores conectados (útil para debug)
+--- Print list of connected monitors (useful for debugging)
 function M.printConnectedMonitors()
     local monitors = M.getAllConnectedMonitors()
     
-    print("=== Monitores Conectados ===")
+    print("=== Connected Monitors ===")
     for i, mon in ipairs(monitors) do
         local primary = mon.isPrimary and " (PRIMARY)" or ""
         print(string.format("%d. %s%s", i, mon.name, primary))
         print(string.format("   ID: %s", mon.id))
-        print(string.format("   Resolução: %dx%d", mon.frame.w, mon.frame.h))
+        print(string.format("   Resolution: %dx%d", mon.frame.w, mon.frame.h))
     end
-    print("============================")
+    print("==========================")
 end
 
 return M
