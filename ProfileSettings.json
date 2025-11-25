@@ -1,5 +1,5 @@
 {
-  "monitors": [
+  "MonitorWindowApp": [
     {
       "name": "DELL P2719H",
       "order": 1,
