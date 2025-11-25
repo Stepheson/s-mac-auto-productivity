@@ -8,7 +8,7 @@ obj.__index = obj
 
 -- Metadata
 obj.name = "MonitorWindowApp"
-obj.version = "2.0"
+obj.version = "2.1"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
 
@@ -27,15 +27,15 @@ local gcTimer = nil
 -- @return self
 function obj:setConfig(config)
     monitorConfigs = config.MonitorWindowApp or {}
-    print(string.format("MonitorWindowApp: %d monitor(s) configured", #monitorConfigs))
+    print(string.format("MonitorWindowApp: %d configuration(s) loaded", #monitorConfigs))
     return self
 end
 
 -- ========== INTERNAL HELPERS ==========
 
-local function getMonitorConfigByOrder(order)
+local function getMonitorConfigByPositionID(positionID)
     for _, config in ipairs(monitorConfigs) do
-        if config.order == order then
+        if config.positionID == positionID then
             return config
         end
     end
@@ -59,7 +59,7 @@ local function calculateTargetFrame(screenFrame, margins)
 end
 
 --- Internal function to move window to monitor
--- @param monitorConfig table Monitor configuration with name and margins
+-- @param monitorConfig table Monitor configuration with positionID, monitorName and margins
 -- @param targetWindow userdata (optional) Window object to move, uses focused window if nil
 local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     local win = targetWindow or hs.window.focusedWindow()
@@ -68,10 +68,12 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
         return
     end
 
-    local targetScreen = managerMonitorsMac.getMonitorByName(monitorConfig.name)
+    -- Use monitorName to find the physical screen
+    local targetScreen = managerMonitorsMac.getMonitorByName(monitorConfig.monitorName)
 
     if not targetScreen then
-        print(string.format("Monitor '%s' not found (disconnected)", monitorConfig.name))
+        print(string.format("Monitor '%s' not found (disconnected) for config '%s'",
+            monitorConfig.monitorName, monitorConfig.positionID))
         return
     end
 
@@ -95,30 +97,33 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
         local targetFrame = calculateTargetFrame(screenFrame, monitorConfig.margins)
         win:setFrame(targetFrame, 0)
 
-        print(string.format("Window moved to %s", monitorConfig.name))
+        print(string.format("Window moved to config '%s' on monitor '%s'",
+            monitorConfig.positionID, monitorConfig.monitorName))
+
         hs.notify.new({
             title = "Hammerspoon",
-            informativeText = string.format("Moved to %s", monitorConfig.name)
+            informativeText = string.format("Moved to %s", monitorConfig.positionID)
         }):send()
     end)
 end
 
 -- ========== PUBLIC API (ACTIONS) ==========
 
---- Move focused window to monitor by order
--- @param order number Monitor order (1-4)
--- @param shouldSave boolean (optional) If true, saves position to storage
--- @return self
-function obj:moveToMonitor(order, shouldSave)
-    local config = getMonitorConfigByOrder(order)
+--- Move focused window to monitor by position ID
+--- @param positionID string Configuration ID (e.g., "dell_standard")
+--- @param shouldSave boolean (optional) If true, saves position to storage
+--- @return self
+function obj:moveToMonitor(positionID, shouldSave)
+    local config = getMonitorConfigByPositionID(positionID)
     if config then
         moveWindowToMonitorInternal(config)
 
         if shouldSave then
-            self:saveCurrentPosition(order)
+            self:saveCurrentPosition(positionID)
         end
     else
-        print(string.format("⚠️  No monitor configured with order=%d", order))
+        print(string.format("⚠️  No configuration found with positionID='%s'", positionID))
+        hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. positionID }):send()
     end
     return self
 end
@@ -126,10 +131,10 @@ end
 --- Get information about configured monitors
 -- @return string Information string with monitor status
 function obj:getMonitorInfo()
-    local info = "Configured monitors:\n"
+    local info = "Configured Layouts:\n"
 
     for i, config in ipairs(monitorConfigs) do
-        local connected = managerMonitorsMac.getMonitorByName(config.name) ~= nil
+        local connected = managerMonitorsMac.getMonitorByName(config.monitorName) ~= nil
         local status = connected and "✓ Connected" or "✗ Disconnected"
 
         local marginInfo = ""
@@ -142,8 +147,8 @@ function obj:getMonitorInfo()
                 (m.right or 0) * 100)
         end
 
-        info = info .. string.format("%d. [Order:%d] %s %s%s\n",
-            i, config.order, status, config.name, marginInfo)
+        info = info .. string.format("%d. [ID: %s] -> [Monitor: %s] %s%s\n",
+            i, config.positionID, config.monitorName, status, marginInfo)
     end
 
     return info
@@ -159,9 +164,9 @@ end
 -- ========== STATE PERSISTENCE ==========
 
 --- Save position of focused window
--- @param order number Monitor order where window was moved
+-- @param positionID string Configuration ID where window was moved
 -- @return boolean true if saved successfully
-function obj:saveCurrentPosition(order)
+function obj:saveCurrentPosition(positionID)
     local win = hs.window.focusedWindow()
 
     if not win then
@@ -179,12 +184,12 @@ function obj:saveCurrentPosition(order)
 
     data.window_positions[windowId] = {
         app_name = app and app:name() or "Unknown",
-        monitor_order = order
+        position_id = positionID -- Changed from config_name to position_id
     }
 
     storageManager.save("MonitorWindowApp", data)
-    print(string.format("[Save] %s (ID:%s) -> Monitor order %d",
-        data.window_positions[windowId].app_name, windowId, order))
+    print(string.format("[Save] %s (ID:%s) -> Config: %s",
+        data.window_positions[windowId].app_name, windowId, positionID))
 
     self:scheduleGarbageCollection()
     return true
@@ -214,8 +219,8 @@ function obj:loadPosition(force)
 
         local appPositions = {}
         for _, savedPos in pairs(data.window_positions) do
-            if savedPos.app_name and savedPos.monitor_order then
-                appPositions[savedPos.app_name] = savedPos.monitor_order
+            if savedPos.app_name and savedPos.position_id then
+                appPositions[savedPos.app_name] = savedPos.position_id
             end
         end
 
@@ -224,15 +229,15 @@ function obj:loadPosition(force)
                 local app = win:application()
                 if app then
                     local appName = app:name()
-                    local monitorOrder = appPositions[appName]
+                    local positionID = appPositions[appName]
 
-                    if monitorOrder then
-                        local config = getMonitorConfigByOrder(monitorOrder)
+                    if positionID then
+                        local config = getMonitorConfigByPositionID(positionID)
                         if config then
                             moveWindowToMonitorInternal(config, win)
                             restored = restored + 1
-                            print(string.format("[Load-Force] %s -> Monitor order %d",
-                                appName, monitorOrder))
+                            print(string.format("[Load-Force] %s -> Config: %s",
+                                appName, positionID))
                         end
                     end
                 end
@@ -245,13 +250,13 @@ function obj:loadPosition(force)
                 local windowId = tostring(win:id())
                 local savedPos = data.window_positions[windowId]
 
-                if savedPos then
-                    local config = getMonitorConfigByOrder(savedPos.monitor_order)
+                if savedPos and savedPos.position_id then
+                    local config = getMonitorConfigByPositionID(savedPos.position_id)
                     if config then
                         moveWindowToMonitorInternal(config, win)
                         restored = restored + 1
-                        print(string.format("[Load] %s (ID:%s) -> Monitor order %d",
-                            savedPos.app_name, windowId, savedPos.monitor_order))
+                        print(string.format("[Load] %s (ID:%s) -> Config: %s",
+                            savedPos.app_name, windowId, savedPos.position_id))
                     end
                 end
             end

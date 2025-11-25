@@ -34,13 +34,34 @@ local function registerAllHotkeys()
   end
   globalHotkeys = {}
 
-  -- ========== MONITOR NAVIGATION & SAVE (1-4) ==========
-  for i = 1, 4 do
-    table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, tostring(i), function()
-      spoon.MonitorWindowApp:moveToMonitor(i, true)
-    end))
-  end
-  print("  Alt+[1-4] -> Move to monitor and SAVE (max 4 monitors)")
+  -- ========== MONITOR NAVIGATION & SAVE ==========
+
+  -- ========== MONITOR NAVIGATION & SAVE ==========
+
+  -- Position 1
+  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "1", function()
+    spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
+  end))
+
+  -- Position 2
+  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "2", function()
+    spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
+  end))
+
+  -- Position 2 (Alternative Layout)
+  table.insert(globalHotkeys, hs.hotkey.bind({ "alt", "shift" }, "2", function()
+    spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
+  end))
+
+  -- Position 3
+  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "3", function()
+    spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
+  end))
+
+  print("  Alt+1       -> Move to Position 1")
+  print("  Alt+2       -> Move to Position 2")
+  print("  Alt+Shift+2 -> Move to Position 2 (Alt Layout)")
+  print("  Alt+3       -> Move to Position 3")
 
 
   -- ========== LOAD HOTKEYS (RESTORE POSITIONS) ==========

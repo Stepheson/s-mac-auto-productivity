@@ -1,9 +1,8 @@
 {
   "MonitorWindowApp": [
     {
-      "name": "DELL P2719H",
-      "order": 1,
-      "isMainMonitor": true,
+      "positionID": "dell_standard",
+      "monitorName": "DELL P2719H",
       "margins": {
         "left": 0.043,
         "top": 0.23,
@@ -12,17 +11,23 @@
       }
     },
     {
-      "name": "MX279",
-      "order": 2,
-      "isMainMonitor": false,
+      "positionID": "monitor_MX279_margin_spaceleft",
+      "monitorName": "MX279",
       "margins": {
         "left": 0.025
       }
     },
     {
-      "name": "Built-in Retina Display",
-      "order": 3,
-      "isMainMonitor": false,
+      "positionID": "monitor_MX279_margin_spaceleft_top",
+      "monitorName": "MX279",
+      "margins": {
+        "left": 0.025,
+        "top": 0.23
+      }
+    },
+    {
+      "positionID": "builtin_standard",
+      "monitorName": "Built-in Retina Display",
       "margins": {
         "left": 0.035
       }
