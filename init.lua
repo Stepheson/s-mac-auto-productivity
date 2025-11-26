@@ -1,184 +1,89 @@
--- ========== HAMMERSPOON GLOBALS ==========
--- Note: "hs" and "spoon" are global tables provided by Hammerspoon runtime
+-- ========== HAMMERSPOON ENTRY POINT ==========
+-- This file acts as a configuration file, wiring together Spoons and Hotkeys.
+-- All logic is encapsulated within the Spoons and Common modules.
 
 print("===========================================")
-print("Loading Hammerspoon...")
+print("Loading Hammerspoon Configuration...")
 print("===========================================")
 
--- ========== CONFIGURE PATH FOR COMMON UTILITIES ==========
-package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
+-- ========== PATH CONFIGURATION ==========
+-- Ensure we can load Spoons and common modules
+--package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
+--package.path = package.path .. ";" .. hs.configdir .. "/?.lua"
 
 -- ========== LOAD SPOONS ==========
+hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
 
--- ========== CENTRALIZED HOTKEY MANAGEMENT ==========
-local globalHotkeys = {}
+-- ========== HOTKEY DEFINITIONS (NATIVE) ==========
+-- We define hotkeys natively so they work even if AutomationControl is missing.
+-- We collect OPERATIONAL hotkeys in a table to pass to AutomationControl for management.
 
-local function registerAllHotkeys()
-  print("==========================================")
-  print("Registering centralized hotkeys...")
-  print("==========================================")
+local hotkeys = {}
 
-  -- Clear old hotkeys
-  for _, hk in ipairs(globalHotkeys) do
-    hk:delete()
-  end
-  globalHotkeys = {}
-
-  -- ========== MONITOR NAVIGATION & SAVE ==========
-
-  -- Position 1
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "1", function()
-    spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
-  end))
-
-  -- Position 2
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "2", function()
-    spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
-  end))
-
-  -- Position 2 (Alternative Layout)
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt", "shift" }, "2", function()
-    spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
-  end))
-
-  -- Position 3
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "3", function()
-    spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
-  end))
-
-  print("  Alt+1       -> Move to Position 1")
-  print("  Alt+2       -> Move to Position 2")
-  print("  Alt+Shift+2 -> Move to Position 2 (Alt Layout)")
-  print("  Alt+3       -> Move to Position 3")
-
-
-  -- ========== LOAD HOTKEYS (RESTORE POSITIONS) ==========
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "6", function()
-    spoon.MonitorWindowApp:loadPosition()
-  end))
-  print("  Alt+6 -> Restore positions")
-
-  -- ========== APP CYCLING HOTKEYS ==========
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
-    spoon.AppCycler:cycle()
-  end))
-  print("  Alt+Tab -> AppCycler:cycle()")
-
-  -- ========== DEBUG HOTKEYS ==========
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt", "shift" }, "m", function()
-    local managerMonitorsMac = require("common.managerMonitorsMac")
-    managerMonitorsMac.printConnectedMonitors()
-  end))
-  print("  Alt+Shift+M -> Debug: show connected monitors")
-
-  -- ========== SYSTEM HOTKEYS ==========
-  table.insert(globalHotkeys, hs.hotkey.bind({ "cmd" }, "h", function() end))
-  print("  Cmd+H -> Muted (Mac Hide disabled)")
-
-  print("==========================================")
-  print(string.format("Total: %d hotkey(s) registered", #globalHotkeys))
-  print("==========================================")
-end
-
-local function unregisterAllHotkeys()
-  for _, hk in ipairs(globalHotkeys) do
-    hk:delete()
-  end
-  globalHotkeys = {}
-  print("All hotkeys removed")
-end
-
--- ========== MODULE LIFECYCLE ==========
-
-local function startAll()
-  spoon.MonitorWindowApp:start()
-  spoon.AppCycler:start()
-  registerAllHotkeys()
-
-  -- Build list of active Spoons
-  local activeSpoons = {}
-  if spoon.MonitorWindowApp then
-    table.insert(activeSpoons, "• " .. spoon.MonitorWindowApp.name)
-  end
-  if spoon.AppCycler then
-    table.insert(activeSpoons, "• " .. spoon.AppCycler.name)
-  end
-
-  local message = "Spoons Active:\n" .. table.concat(activeSpoons, "\n")
-  hs.alert.show("🟢 " .. message)
-end
-
-local function stopAll()
-  unregisterAllHotkeys()
-  spoon.MonitorWindowApp:stop()
-  spoon.AppCycler:stop()
-
-  -- Build list of stopped Spoons
-  local stoppedSpoons = {}
-  if spoon.MonitorWindowApp then
-    table.insert(stoppedSpoons, "• " .. spoon.MonitorWindowApp.name)
-  end
-  if spoon.AppCycler then
-    table.insert(stoppedSpoons, "• " .. spoon.AppCycler.name)
-  end
-
-  local message = "Spoons Inactive:\n" .. table.concat(stoppedSpoons, "\n")
-  hs.alert.show("🔴 " .. message)
-end
-
--- ========== INITIALIZATION ==========
-local modulesActive = true
-startAll()
-print("Modules started automatically")
-
--- ========== GLOBAL CONTROLS ==========
-
+-- 1. Master Switch (Always Active)
+-- These are NOT added to the 'hotkeys' list, so AutomationControl doesn't disable them.
 hs.hotkey.bind({ "alt", "shift" }, "0", function()
-  if modulesActive then
-    print("Deactivating modules...")
-    stopAll()
-    modulesActive = false
-  end
+  spoon.AutomationControl:stop()
 end)
 
 hs.hotkey.bind({ "alt", "shift" }, "1", function()
-  if not modulesActive then
-    print("Activating modules...")
-    startAll()
-    modulesActive = true
-  end
+  spoon.AutomationControl:start()
 end)
 
--- ========== AUTO RELOAD ==========
-local reloadTimer = nil
+-- 2. Operational Hotkeys (Managed)
+-- These are added to the list to be disabled on stop().
 
-local function reloadConfig(files)
-  local doReload = false
-  for _, file in pairs(files) do
-    -- Ignore storage directory (contains position data that shouldn't trigger reload)
-    if not file:match("storage/") and (file:sub(-4) == ".lua" or file:sub(-5) == ".json") then
-      doReload = true
-      print(string.format("[AutoReload] Change detected: %s", file))
-    end
-  end
+-- Monitor Navigation
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "1", function()
+  spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
+end))
 
-  if doReload then
-    -- Debounce: wait 0.5s before reloading to avoid cascading reloads
-    if reloadTimer then
-      reloadTimer:stop()
-    end
-    reloadTimer = hs.timer.doAfter(0.5, function()
-      print("[AutoReload] Reloading Hammerspoon...")
-      hs.reload()
-    end)
-  end
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "2", function()
+  spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
+end))
+
+table.insert(hotkeys, hs.hotkey.bind({ "alt", "shift" }, "2", function()
+  spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
+end))
+
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "3", function()
+  spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
+end))
+
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "6", function()
+  spoon.MonitorWindowApp:loadPosition()
+end))
+
+-- App Cycling
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
+  spoon.AppCycler:cycle()
+end))
+
+-- Debug Tools
+table.insert(hotkeys, hs.hotkey.bind({ "alt", "shift" }, "m", function()
+  local managerMonitorsMac = require("common.managerMonitorsMac")
+  managerMonitorsMac.printConnectedMonitors()
+end))
+
+-- Shortcut to be called instead of the standard MAV "hidden" shortcut
+-- System is not managed by AutomationControl.
+hs.hotkey.bind({ "cmd" }, "h", function() end)
+--table.insert(hotkeys, hs.hotkey.bind({ "cmd" }, "h", function() end)) --managed by AutomationControl
+
+
+-- ========== AUTOMATION CONTROL INJECTION ==========
+
+if spoon.AutomationControl then
+  spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
+  spoon.AutomationControl:registerSpoon(spoon.AppCycler)
+  spoon.AutomationControl:registerHotkeys(hotkeys)
+  spoon.AutomationControl:start()
+else
+  print("⚠️ AutomationControl Spoon not found. Hotkeys active in unmanaged mode.")
 end
 
--- Keep the watcher object in a local variable to prevent garbage collection
-local configWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
-
 print("==========================================")
-print("Hammerspoon loaded successfully!")
+print("Hammerspoon Configuration Loaded!")
 print("==========================================")

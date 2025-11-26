@@ -118,6 +118,8 @@ end
 
 function obj:init()
   print("AppCycler Spoon: init() called")
+  -- Start Auto-Reload
+  require("common.autoReload").start()
   return self
 end
 

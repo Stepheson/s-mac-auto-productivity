@@ -354,6 +354,9 @@ function obj:init()
     hs.window.animationDuration = 0
     print("MonitorWindowApp Spoon: init() called")
 
+    -- Start Auto-Reload
+    require("common.autoReload").start()
+
     -- Load configuration internally
     self:loadConfig()
 
