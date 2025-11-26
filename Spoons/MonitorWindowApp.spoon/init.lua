@@ -121,6 +121,12 @@ end
 --- @param shouldSave boolean (optional) If true, saves position to storage
 --- @return self
 function obj:moveToMonitor(positionID, shouldSave)
+    local win = hs.window.focusedWindow()
+    if not win then
+        hs.alert.show("⚠️ No window focused", 2)
+        return self
+    end
+
     print(string.format("[moveToMonitor] Called with positionID='%s', shouldSave=%s", positionID, tostring(shouldSave)))
 
     local config = getMonitorConfigByPositionID(positionID)
@@ -133,7 +139,7 @@ function obj:moveToMonitor(positionID, shouldSave)
     print(string.format("[moveToMonitor] Config found: monitorName='%s'", config.monitorName))
 
     -- Attempt to move window (this will check if monitor is connected)
-    local success = moveWindowToMonitorInternal(config)
+    local success = moveWindowToMonitorInternal(config, win)
 
     if not success then
         print(string.format("[moveToMonitor] FAILED - Monitor '%s' not available, will NOT save", config.monitorName))
