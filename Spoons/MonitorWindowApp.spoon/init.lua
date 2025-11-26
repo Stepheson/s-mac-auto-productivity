@@ -381,6 +381,9 @@ function obj:init()
     -- Load configuration internally
     self:loadConfig()
 
+    -- Schedule initial cleanup
+    self:scheduleGarbageCollection()
+
     return self
 end
 
