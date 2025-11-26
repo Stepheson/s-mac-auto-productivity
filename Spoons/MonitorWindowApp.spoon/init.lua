@@ -327,22 +327,37 @@ function obj:cleanupStaleEntries()
         return
     end
 
-    local activeWindows = {}
-    for _, win in ipairs(hs.window.allWindows()) do
-        activeWindows[tostring(win:id())] = true
-    end
-
     local removed = 0
     for windowId, entries in pairs(data.window_positions) do
-        -- If window ID is no longer active, remove the ENTIRE entry (all screen configs)
-        -- The user specified: "O garbagecoletor apenas poderá apagar o APP não usado, e não o objeto de nscreenw não usado."
-        -- This means if the window/app is closed, we remove its data.
-        -- But we do NOT remove entries for nscreenw=2 just because we are currently on nscreenw=3.
+        -- STRATEGY: Innocent until proven guilty
+        -- 1. Check if window exists by ID
+        local win = hs.window.get(tonumber(windowId))
 
-        if not activeWindows[windowId] then
-            data.window_positions[windowId] = nil
-            removed = removed + 1
-            print(string.format("[GC] Removed stale ID: %s", windowId))
+        if win then
+            -- Window exists, keep it
+        else
+            -- 2. Fallback: If window not found (could be hidden space), check if APP is running
+            -- We need to check the app_name from the entries
+            local appRunning = false
+
+            -- Entries is an array of configs for different screen counts
+            -- We just need to check one of them to get the app name
+            if type(entries) == "table" and #entries > 0 then
+                local appName = entries[1].app_name
+                if appName and hs.application.get(appName) then
+                    appRunning = true
+                end
+            end
+
+            if appRunning then
+                -- App is still alive, so window might be hidden. KEEP IT.
+                -- print(string.format("[GC] Preserving ID %s because App is running", windowId))
+            else
+                -- App is dead, so window is definitely gone. DELETE.
+                data.window_positions[windowId] = nil
+                removed = removed + 1
+                print(string.format("[GC] Removed stale ID: %s (App terminated)", windowId))
+            end
         end
     end
 
