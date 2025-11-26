@@ -77,7 +77,7 @@ end
 
 --- Get list of all connected monitors with information
 -- @return table Array of monitor information objects
-function M.getAllConnectedMonitors()
+local function getAllConnectedMonitors()
     local screens = hs.screen.allScreens()
     local monitors = {}
 
@@ -95,7 +95,7 @@ end
 
 --- Print list of connected monitors (useful for debugging)
 function M.printConnectedMonitors()
-    local monitors = M.getAllConnectedMonitors()
+    local monitors = getAllConnectedMonitors()
 
     print("=== Connected Monitors ===")
     for i, mon in ipairs(monitors) do

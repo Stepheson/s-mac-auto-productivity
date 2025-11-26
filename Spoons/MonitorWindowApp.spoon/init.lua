@@ -21,6 +21,9 @@ local configParser = require("common.configParser")
 -- Garbage collection timer
 local gcTimer = nil
 
+-- Constants
+local STORAGE_ID = "MonitorWindowAppSt"
+
 -- ========== CONFIGURATION ==========
 
 --- Load configuration from MonitorWindowAppSettings.json
@@ -62,11 +65,12 @@ end
 --- Internal function to move window to monitor
 -- @param monitorConfig table Monitor configuration with positionID, monitorName and margins
 -- @param targetWindow userdata (optional) Window object to move, uses focused window if nil
+-- @return boolean true if window was moved successfully, false otherwise
 local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     local win = targetWindow or hs.window.focusedWindow()
     if not win then
         hs.notify.new({ title = "Hammerspoon", informativeText = "No window in focus" }):send()
-        return
+        return false
     end
 
     -- Use monitorName to find the physical screen
@@ -75,7 +79,7 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     if not targetScreen then
         print(string.format("Monitor '%s' not found (disconnected) for config '%s'",
             monitorConfig.monitorName, monitorConfig.positionID))
-        return
+        return false
     end
 
     local screenFrame = targetScreen:frame()
@@ -106,6 +110,8 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
             informativeText = string.format("Moved to %s", monitorConfig.positionID)
         }):send()
     end)
+
+    return true
 end
 
 -- ========== PUBLIC API (ACTIONS) ==========
@@ -115,50 +121,37 @@ end
 --- @param shouldSave boolean (optional) If true, saves position to storage
 --- @return self
 function obj:moveToMonitor(positionID, shouldSave)
-    local config = getMonitorConfigByPositionID(positionID)
-    if config then
-        moveWindowToMonitorInternal(config)
+    print(string.format("[moveToMonitor] Called with positionID='%s', shouldSave=%s", positionID, tostring(shouldSave)))
 
-        if shouldSave then
-            self:saveCurrentPosition(positionID)
-        end
-    else
+    local config = getMonitorConfigByPositionID(positionID)
+    if not config then
         print(string.format("⚠️  No configuration found with positionID='%s'", positionID))
         hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. positionID }):send()
+        return self
     end
+
+    print(string.format("[moveToMonitor] Config found: monitorName='%s'", config.monitorName))
+
+    -- Attempt to move window (this will check if monitor is connected)
+    local success = moveWindowToMonitorInternal(config)
+
+    if not success then
+        print(string.format("[moveToMonitor] FAILED - Monitor '%s' not available, will NOT save", config.monitorName))
+        hs.alert.show(string.format("Monitor not available: %s", config.monitorName), 2)
+        return self
+    end
+
+    print("[moveToMonitor] SUCCESS - Window moved")
+
+    -- Only save if move was successful
+    if shouldSave then
+        print("[moveToMonitor] Calling saveCurrentPosition...")
+        self:saveCurrentPosition(positionID)
+    else
+        print("[moveToMonitor] shouldSave=false, skipping save")
+    end
+
     return self
-end
-
---- Get information about configured monitors
--- @return string Information string with monitor status
-function obj:getMonitorInfo()
-    local info = "Configured Layouts:\n"
-
-    for i, config in ipairs(monitorConfigs) do
-        local connected = managerMonitorsMac.getMonitorByName(config.monitorName) ~= nil
-        local status = connected and "✓ Connected" or "✗ Disconnected"
-
-        local marginInfo = ""
-        if config.margins then
-            local m = config.margins
-            marginInfo = string.format(" (L:%.1f%% T:%.1f%% B:%.1f%% R:%.1f%%)",
-                (m.left or 0) * 100,
-                (m.top or 0) * 100,
-                (m.bottom or 0) * 100,
-                (m.right or 0) * 100)
-        end
-
-        info = info .. string.format("%d. [ID: %s] -> [Monitor: %s] %s%s\n",
-            i, config.positionID, config.monitorName, status, marginInfo)
-    end
-
-    return info
-end
-
---- Reload configuration
--- @return self
-function obj:reloadConfig()
-    return self:loadConfig()
 end
 
 -- ========== STATE PERSISTENCE ==========
@@ -181,7 +174,7 @@ function obj:saveCurrentPosition(positionID)
         return false
     end
 
-    local data = storageManager.load("MonitorWindowApp")
+    local data = storageManager.load(STORAGE_ID)
     if not data.window_positions then
         data.window_positions = {}
     end
@@ -230,7 +223,7 @@ function obj:saveCurrentPosition(positionID)
         })
     end
 
-    local success = storageManager.save("MonitorWindowApp", data)
+    local success = storageManager.save(STORAGE_ID, data)
     if success then
         print(string.format("[Save] Success! %s (ID:%s) -> Config: %s [Screens: %d]",
             appName, windowId, positionID, nscreenw))
@@ -245,7 +238,7 @@ end
 --- Restore positions of all open windows
 -- @return self
 function obj:loadPosition()
-    local data = storageManager.load("MonitorWindowApp")
+    local data = storageManager.load(STORAGE_ID)
 
     if not data.window_positions or next(data.window_positions) == nil then
         hs.notify.new({
@@ -283,10 +276,15 @@ function obj:loadPosition()
                 if positionID then
                     local config = getMonitorConfigByPositionID(positionID)
                     if config then
-                        moveWindowToMonitorInternal(config, win)
-                        restored = restored + 1
-                        print(string.format("[Load] %s (ID:%s) -> Config: %s",
-                            appName, windowId, positionID))
+                        local success = moveWindowToMonitorInternal(config, win)
+                        if success then
+                            restored = restored + 1
+                            print(string.format("[Load] %s (ID:%s) -> Config: %s",
+                                appName, windowId, positionID))
+                        else
+                            print(string.format("[Load] SKIPPED %s (ID:%s) - Monitor not available",
+                                appName, windowId))
+                        end
                     end
                 end
             end
@@ -317,7 +315,7 @@ end
 
 --- Clean up stale entries from storage
 function obj:cleanupStaleEntries()
-    local data = storageManager.load("MonitorWindowApp")
+    local data = storageManager.load(STORAGE_ID)
 
     if not data.window_positions then
         return
@@ -343,7 +341,7 @@ function obj:cleanupStaleEntries()
     end
 
     if removed > 0 then
-        storageManager.save("MonitorWindowApp", data)
+        storageManager.save(STORAGE_ID, data)
         print(string.format("[GC] %d entry/entries removed", removed))
     else
         print("[GC] No stale entries found")

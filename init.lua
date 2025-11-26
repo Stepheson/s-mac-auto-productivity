@@ -176,6 +176,7 @@ local function reloadConfig(files)
   end
 end
 
+-- Keep the watcher object in a local variable to prevent garbage collection
 local configWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
 
 print("==========================================")

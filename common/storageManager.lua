@@ -42,12 +42,12 @@ local function getFilePath(spoonId)
         logger.e("Invalid spoonId: must be a non-empty string")
         return nil
     end
-    
+
     local storagePath = getStoragePath()
     if not storagePath then
         return nil
     end
-    
+
     return storagePath .. "/" .. spoonId .. ".json"
 end
 
@@ -58,7 +58,7 @@ local function ensureStorageDir()
     if not storagePath then
         return false
     end
-    
+
     -- Check if directory exists
     local attributes = hs.fs.attributes(storagePath)
     if attributes then
@@ -69,7 +69,7 @@ local function ensureStorageDir()
             return false
         end
     end
-    
+
     -- Create directory
     local success, error = hs.fs.mkdir(storagePath)
     if success then
@@ -79,37 +79,6 @@ local function ensureStorageDir()
         logger.e("Failed to create storage directory: " .. (error or "unknown error"))
         return false
     end
-end
-
---- Create an empty JSON file for a Spoon
--- @param spoonId string The Spoon identifier
--- @return boolean true if file was created successfully
-local function createEmptyFile(spoonId)
-    local filePath = getFilePath(spoonId)
-    if not filePath then
-        return false
-    end
-    
-    -- Ensure directory exists
-    if not ensureStorageDir() then
-        return false
-    end
-    
-    -- Create empty JSON object
-    local emptyJson = "{}"
-    
-    -- Write to file
-    local file = io.open(filePath, "w")
-    if not file then
-        logger.e("Failed to create file: " .. filePath)
-        return false
-    end
-    
-    file:write(emptyJson)
-    file:close()
-    
-    logger.i("Created empty storage file: " .. filePath)
-    return true
 end
 
 -- ============================================================================
@@ -124,7 +93,7 @@ function storageManager.exists(spoonId)
     if not filePath then
         return false
     end
-    
+
     local attributes = hs.fs.attributes(filePath)
     return attributes ~= nil and attributes.mode == "file"
 end
@@ -140,40 +109,40 @@ function storageManager.save(spoonId, dataTable)
         logger.e("Invalid spoonId for save operation")
         return false
     end
-    
+
     if not dataTable or type(dataTable) ~= "table" then
         logger.e("Invalid data: must be a table")
         return false
     end
-    
+
     -- Get file path
     local filePath = getFilePath(spoonId)
     if not filePath then
         return false
     end
-    
+
     -- Ensure directory exists
     if not ensureStorageDir() then
         return false
     end
-    
+
     -- Serialize to JSON
     local success, jsonString = pcall(hs.json.encode, dataTable, true)
     if not success then
         logger.e("Failed to serialize data to JSON: " .. tostring(jsonString))
         return false
     end
-    
+
     -- Write to file (synchronous for simplicity and reliability)
     local file, err = io.open(filePath, "w")
     if not file then
         logger.e("Failed to open file for writing: " .. (err or "unknown error"))
         return false
     end
-    
+
     file:write(jsonString)
     file:close()
-    
+
     logger.i(string.format("[%s] Data saved successfully to %s", spoonId, filePath))
     return true
 end
@@ -187,34 +156,34 @@ function storageManager.load(spoonId)
         logger.e("Invalid spoonId for load operation")
         return {}
     end
-    
+
     -- Get file path
     local filePath = getFilePath(spoonId)
     if not filePath then
         return {}
     end
-    
+
     -- Check if file exists
     if not storageManager.exists(spoonId) then
         logger.w(string.format("[%s] Storage file does not exist: %s", spoonId, filePath))
         return {}
     end
-    
+
     -- Read file
     local file, err = io.open(filePath, "r")
     if not file then
         logger.e("Failed to open file for reading: " .. (err or "unknown error"))
         return {}
     end
-    
+
     local content = file:read("*all")
     file:close()
-    
+
     if not content or content == "" then
         logger.w("File is empty: " .. filePath)
         return {}
     end
-    
+
     -- Deserialize JSON
     local success, dataTable = pcall(hs.json.decode, content)
     if not success then
@@ -222,16 +191,9 @@ function storageManager.load(spoonId)
         logger.e("File content: " .. content)
         return {}
     end
-    
+
     logger.i(string.format("[%s] Data loaded successfully from %s", spoonId, filePath))
     return dataTable or {}
-end
-
---- Get the full file path for a Spoon (useful for debugging)
--- @param spoonId string The Spoon identifier
--- @return string|nil Full path to the JSON file
-function storageManager.getPath(spoonId)
-    return getFilePath(spoonId)
 end
 
 return storageManager

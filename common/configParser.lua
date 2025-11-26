@@ -16,10 +16,10 @@ function M.loadConfig(filePath)
         cachedConfig = {}
         return cachedConfig
     end
-    
+
     local content = file:read("*all")
     file:close()
-    
+
     local success, config = pcall(hs.json.decode, content)
     if not success then
         print("❌ Error parsing ProfileSettings.json:")
@@ -28,24 +28,11 @@ function M.loadConfig(filePath)
         cachedConfig = {}
         return cachedConfig
     end
-    
+
     cachedConfig = config
     print("✅ ProfileSettings.json loaded successfully")
-    
+
     return cachedConfig
-end
-
--- ========== CACHE ACCESS ==========
-
---- Get current cached configuration
--- @return table Cached configuration or empty table
-function M.getCachedConfig()
-    return cachedConfig or {}
-end
-
---- Clear cache (useful for reload)
-function M.clearCache()
-    cachedConfig = nil
 end
 
 return M
