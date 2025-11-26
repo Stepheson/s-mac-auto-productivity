@@ -85,10 +85,11 @@ local function cycleAppsOnCurrentMonitor()
   local nextApp = visibleApps[nextIndex].app
   local nextName = visibleApps[nextIndex].name
 
-  -- Final validation: ensure window is still on correct monitor
-  if nextWindow:screen():id() ~= targetScreenId then
+  -- Final validation: ensure window is still on correct monitor and screen exists
+  local nextScreen = nextWindow:screen()
+  if not nextScreen or nextScreen:id() ~= targetScreenId then
     isExecuting = false
-    print(">>> ABORTED: Window not on correct monitor")
+    print(">>> ABORTED: Window not on correct monitor or was closed")
     return
   end
 
