@@ -24,15 +24,23 @@ function M.getFocusedWindowInfo()
     }
 end
 
---- Get only visible windows on a specific monitor
--- Filters by mainWindow when possible to get the main window of each app
+--- Get visible windows on a specific monitor with filtering and stable sorting
 -- @param screenId userdata Screen ID to filter windows
+-- @param mode number 0=All, 1=Apps Only, 2=Instances Only (Current App)
 -- @return table Array of {window, app, name} for visible windows
-function M.getVisibleWindowsOnScreen(screenId)
+function M.getVisibleWindowsOnScreen(screenId, mode)
     local visibleWindows = {}
     local seenApps = {}
+    local focusedApp = nil
 
-    local allWindows = hs.window.orderedWindows()
+    -- Determine focused app for Mode 2
+    if mode == 2 then
+        local win = hs.window.focusedWindow()
+        if win then focusedApp = win:application() end
+    end
+
+    -- 1. Collect all valid windows on screen
+    local allWindows = hs.window.allWindows() -- Use allWindows for stable base, we will sort manually
 
     for _, win in ipairs(allWindows) do
         if win:isStandard() and win:isVisible() then
@@ -41,70 +49,73 @@ function M.getVisibleWindowsOnScreen(screenId)
 
             if winScreen and winScreen:id() == screenId and app then
                 local appName = app:name()
+                local shouldAdd = false
 
-                if not seenApps[appName] then
-                    seenApps[appName] = true
+                if mode == 1 then
+                    -- Mode 1: Apps Only (Unique)
+                    if not seenApps[appName] then
+                        seenApps[appName] = true
+                        shouldAdd = true
+                    end
+                elseif mode == 2 then
+                    -- Mode 2: Instances Only (Current App)
+                    if focusedApp and app:bundleID() == focusedApp:bundleID() then
+                        shouldAdd = true
+                    end
+                else
+                    -- Mode 0 (Default): All Windows
+                    shouldAdd = true
+                end
+
+                if shouldAdd then
                     table.insert(visibleWindows, {
                         window = win,
                         app = app,
-                        name = appName
+                        name = appName,
+                        id = win:id()
                     })
                 end
             end
         end
     end
 
+    -- 2. Stable Sort: App Name (A-Z) -> Window ID (Ascending)
+    -- This ensures the order doesn't change when focus changes (Z-order)
+    table.sort(visibleWindows, function(a, b)
+        if a.name == b.name then
+            return a.id < b.id
+        else
+            return a.name < b.name
+        end
+    end)
+
     return visibleWindows
 end
 
 -- ========== MONITOR SEARCH ==========
 
---- Find monitor by exact name
--- @param monitorName string Exact monitor name
--- @return userdata|nil Screen object or nil if not found
-function M.getMonitorByName(monitorName)
+--- Get monitor object by exact name
+-- @param exactName string Name of the monitor to find
+-- @return userdata|nil hs.screen object or nil if not found
+function M.getMonitorByName(exactName)
     local screens = hs.screen.allScreens()
-
-    for _, screen in ipairs(screens) do
-        local screenName = screen:name()
-        if screenName == monitorName then
-            return screen
+    for _, s in ipairs(screens) do
+        if s:name() == exactName then
+            return s
         end
     end
-
     return nil
 end
 
---- Get list of all connected monitors with information
--- @return table Array of monitor information objects
-local function getAllConnectedMonitors()
-    local screens = hs.screen.allScreens()
-    local monitors = {}
-
-    for _, screen in ipairs(screens) do
-        table.insert(monitors, {
-            name = screen:name(),
-            id = screen:id(),
-            frame = screen:frame(),
-            isPrimary = (screen == hs.screen.primaryScreen())
-        })
-    end
-
-    return monitors
-end
-
---- Print list of connected monitors (useful for debugging)
+--- Debug: Print all connected monitors
 function M.printConnectedMonitors()
-    local monitors = getAllConnectedMonitors()
-
-    print("=== Connected Monitors ===")
-    for i, mon in ipairs(monitors) do
-        local primary = mon.isPrimary and " (PRIMARY)" or ""
-        print(string.format("%d. %s%s", i, mon.name, primary))
-        print(string.format("   ID: %s", mon.id))
-        print(string.format("   Resolution: %dx%d", mon.frame.w, mon.frame.h))
+    local screens = hs.screen.allScreens()
+    print("\n[DEBUG] Connected Monitors:")
+    for i, s in ipairs(screens) do
+        print(string.format("  %d. Name: '%s' | ID: %s | Frame: %s",
+            i, s:name(), s:id(), s:frame()))
     end
-    print("==========================")
+    print("---------------------------------------------------\n")
 end
 
 return M

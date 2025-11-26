@@ -58,7 +58,7 @@ end))
 
 -- App Cycling
 table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
-  spoon.AppCycler:cycle()
+  spoon.AppCycler:cycle(0)
 end))
 
 -- Debug Tools

@@ -2,115 +2,90 @@
 ---
 --- Application cycling library for same-monitor workflows
 --- Does NOT handle keyboard shortcuts - only exposes actions
+---
 
 local obj = {}
 obj.__index = obj
 
 -- Metadata
 obj.name = "AppCycler"
-obj.version = "1.1"
+obj.version = "1.2"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
 
 -- Internal state
-local lastExecutionTime = 0
-local minimumDelay = 0.15
 local isExecuting = false
-
 local managerMonitorsMac = require("common.managerMonitorsMac")
 
--- ========== INTERNAL LOGIC ==========
+-- ========== PUBLIC API (ACTIONS) ==========
 
-local function cycleAppsOnCurrentMonitor()
-  -- LOCK: Prevent simultaneous executions
+--- Cycle through visible apps/windows on the current monitor
+--- @param mode number (optional) 0=All (default), 1=Apps Only, 2=Instances Only
+--- @return self
+function obj:cycle(mode)
   if isExecuting then
-    print(">>> BLOCKED: Execution already in progress")
-    return
+    print("[AppCycler] Skipped (Debounce/Lock)")
+    return self
   end
 
-  -- DEBOUNCE: Prevent rapid executions
-  local currentTime = hs.timer.secondsSinceEpoch()
-  local timeSinceLastExecution = currentTime - lastExecutionTime
-
-  if timeSinceLastExecution < minimumDelay then
-    print(string.format(">>> BLOCKED: Too fast (%.3fs since last execution)", timeSinceLastExecution))
-    hs.alert.show("⏸ Wait...", 0.3)
-    return
-  end
+  -- Default to Mode 0 (All)
+  mode = mode or 0
 
   isExecuting = true
-  lastExecutionTime = currentTime
 
-  local focusedInfo = managerMonitorsMac.getFocusedWindowInfo()
-  if not focusedInfo then
+  -- Safety unlock after timeout
+  hs.timer.doAfter(0.5, function() isExecuting = false end)
+
+  local winInfo = managerMonitorsMac.getFocusedWindowInfo()
+  if not winInfo then
+    print("[AppCycler] No window focused")
     isExecuting = false
-    hs.alert.show("No window in focus", 1)
-    return
+    return self
   end
 
-  local currentApp = focusedInfo.app
-  local targetScreenId = focusedInfo.screenId
+  local screenId = winInfo.screenId
+  local currentWin = winInfo.window
 
-  print(string.format(">>> EXECUTING on Monitor ID: %s (%s)", targetScreenId, focusedInfo.screenName))
+  -- Get filtered and sorted windows
+  local windows = managerMonitorsMac.getVisibleWindowsOnScreen(screenId, mode)
 
-  local visibleApps = managerMonitorsMac.getVisibleWindowsOnScreen(targetScreenId)
-
-  if #visibleApps <= 1 then
+  if #windows < 2 then
+    print("[AppCycler] Less than 2 targets, nothing to cycle")
     isExecuting = false
-    hs.alert.show("No other apps on this monitor", 1)
-    return
+    return self
   end
 
-  -- Sort alphabetically by name
-  table.sort(visibleApps, function(a, b)
-    return a.name < b.name
-  end)
-
-  -- Find current app index
-  local currentIndex = 1
-  for i, appData in ipairs(visibleApps) do
-    if appData.app == currentApp then
+  -- Find current index in the sorted list
+  local currentIndex = -1
+  for i, w in ipairs(windows) do
+    if w.window:id() == currentWin:id() then
       currentIndex = i
       break
     end
   end
 
-  -- Calculate next index (circular)
-  local nextIndex = currentIndex + 1
-  if nextIndex > #visibleApps then
-    nextIndex = 1
+  -- Calculate next index (Circular)
+  local nextIndex = 1
+  if currentIndex ~= -1 then
+    nextIndex = currentIndex + 1
+    if nextIndex > #windows then
+      nextIndex = 1
+    end
   end
 
-  local nextWindow = visibleApps[nextIndex].window
-  local nextApp = visibleApps[nextIndex].app
-  local nextName = visibleApps[nextIndex].name
+  -- Focus next window
+  local target = windows[nextIndex]
+  if target then
+    print(string.format("[AppCycler] Cycling to: %s (ID: %d)", target.name, target.window:id()))
+    target.window:focus()
 
-  -- Final validation: ensure window is still on correct monitor and screen exists
-  local nextScreen = nextWindow:screen()
-  if not nextScreen or nextScreen:id() ~= targetScreenId then
-    isExecuting = false
-    print(">>> ABORTED: Window not on correct monitor or was closed")
-    return
+    -- Visual feedback
+    hs.alert.show(string.format("→ %s (%d/%d)", target.name, nextIndex, #windows), 0.5)
   end
 
-  -- Activate app and focus window
-  nextApp:activate()
-  hs.timer.doAfter(0.05, function()
-    nextWindow:focus()
-  end)
+  -- Release lock after short delay
+  hs.timer.doAfter(0.15, function() isExecuting = false end)
 
-  hs.alert.show(string.format("→ %s (%d/%d)", nextName, nextIndex, #visibleApps), 0.8)
-  print(string.format(">>> SUCCESS: %s (%d/%d)", nextName, nextIndex, #visibleApps))
-
-  isExecuting = false
-end
-
--- ========== PUBLIC API (ACTIONS) ==========
-
---- Cycle between apps on current monitor
--- @return self
-function obj:cycle()
-  cycleAppsOnCurrentMonitor()
   return self
 end
 
