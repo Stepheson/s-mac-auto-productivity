@@ -8,7 +8,7 @@ obj.__index = obj
 
 -- Metadata
 obj.name = "MonitorWindowApp"
-obj.version = "2.1"
+obj.version = "2.2"
 obj.author = "Stepheson Alves"
 obj.license = "MIT"
 
@@ -16,18 +16,19 @@ obj.license = "MIT"
 local monitorConfigs = {}
 local managerMonitorsMac = require("common.managerMonitorsMac")
 local storageManager = require("common.storageManager")
+local configParser = require("common.configParser")
 
 -- Garbage collection timer
 local gcTimer = nil
 
 -- ========== CONFIGURATION ==========
 
---- Set monitor configuration from ProfileSettings.json
--- @param config table Configuration object containing MonitorWindowApp array
+--- Load configuration from MonitorWindowAppSettings.json
 -- @return self
-function obj:setConfig(config)
-    monitorConfigs = config.MonitorWindowApp or {}
-    print(string.format("MonitorWindowApp: %d configuration(s) loaded", #monitorConfigs))
+function obj:loadConfig()
+    local configPath = hs.configdir .. "/MonitorWindowAppSettings.json"
+    monitorConfigs = configParser.loadConfig(configPath) or {}
+    print(string.format("MonitorWindowApp: %d configuration(s) loaded from internal file", #monitorConfigs))
     return self
 end
 
@@ -155,10 +156,9 @@ function obj:getMonitorInfo()
 end
 
 --- Reload configuration
--- @param newConfig table New configuration object
 -- @return self
-function obj:reloadConfig(newConfig)
-    return self:setConfig(newConfig)
+function obj:reloadConfig()
+    return self:loadConfig()
 end
 
 -- ========== STATE PERSISTENCE ==========
@@ -174,6 +174,13 @@ function obj:saveCurrentPosition(positionID)
         return false
     end
 
+    -- Validate that positionID exists in configuration
+    local config = getMonitorConfigByPositionID(positionID)
+    if not config then
+        print(string.format("[MonitorWindowApp] ⚠️  Invalid positionID: '%s' not found in configuration", positionID))
+        return false
+    end
+
     local data = storageManager.load("MonitorWindowApp")
     if not data.window_positions then
         data.window_positions = {}
@@ -181,24 +188,63 @@ function obj:saveCurrentPosition(positionID)
 
     local windowId = tostring(win:id())
     local app = win:application()
+    local appName = app and app:name() or "Unknown"
 
-    data.window_positions[windowId] = {
-        app_name = app and app:name() or "Unknown",
-        position_id = positionID -- Changed from config_name to position_id
-    }
+    -- Determine current number of screens
+    local screens = hs.screen.allScreens()
+    local nscreenw = #screens
+    print(string.format("[Save] Detected %d screen(s)", nscreenw))
 
-    storageManager.save("MonitorWindowApp", data)
-    print(string.format("[Save] %s (ID:%s) -> Config: %s",
-        data.window_positions[windowId].app_name, windowId, positionID))
+    -- Initialize array for this window if it doesn't exist
+    if not data.window_positions[windowId] then
+        data.window_positions[windowId] = {}
+    end
+
+    -- If it was previously an object (old format), convert to array
+    if type(data.window_positions[windowId]) ~= "table" or data.window_positions[windowId].position_id then
+        print("[Save] Converting old format to array for ID: " .. windowId)
+        data.window_positions[windowId] = {}
+    end
+
+    local entries = data.window_positions[windowId]
+    local found = false
+
+    -- Update existing entry for this nscreenw
+    for i, entry in ipairs(entries) do
+        if entry.nscreenw == nscreenw then
+            print(string.format("[Save] Updating existing entry for %d screens (Index: %d)", nscreenw, i))
+            entry.position_id = positionID
+            entry.app_name = appName
+            found = true
+            break
+        end
+    end
+
+    -- Add new entry if not found
+    if not found then
+        print(string.format("[Save] Creating new entry for %d screens", nscreenw))
+        table.insert(entries, {
+            nscreenw = nscreenw,
+            position_id = positionID,
+            app_name = appName
+        })
+    end
+
+    local success = storageManager.save("MonitorWindowApp", data)
+    if success then
+        print(string.format("[Save] Success! %s (ID:%s) -> Config: %s [Screens: %d]",
+            appName, windowId, positionID, nscreenw))
+    else
+        print("[Save] Failed to write to storage!")
+    end
 
     self:scheduleGarbageCollection()
-    return true
+    return success
 end
 
 --- Restore positions of all open windows
--- @param force boolean (optional) If true, ignores window_id and uses only app_name
 -- @return self
-function obj:loadPosition(force)
+function obj:loadPosition()
     local data = storageManager.load("MonitorWindowApp")
 
     if not data.window_positions or next(data.window_positions) == nil then
@@ -212,51 +258,35 @@ function obj:loadPosition(force)
 
     local allWindows = hs.window.allWindows()
     local restored = 0
+    local nscreenw = #hs.screen.allScreens()
+    print(string.format("[Load] Restoring for %d screen(s)", nscreenw))
 
-    if force then
-        -- FORCE MODE: Match by app_name (ignores window_id)
-        print("[Load] FORCE mode activated - using app_name")
+    -- Match by window_id
+    for _, win in ipairs(allWindows) do
+        if win:isStandard() and win:isVisible() then
+            local windowId = tostring(win:id())
+            local entries = data.window_positions[windowId]
 
-        local appPositions = {}
-        for _, savedPos in pairs(data.window_positions) do
-            if savedPos.app_name and savedPos.position_id then
-                appPositions[savedPos.app_name] = savedPos.position_id
-            end
-        end
+            if entries and type(entries) == "table" then
+                local positionID = nil
+                local appName = "Unknown"
 
-        for _, win in ipairs(allWindows) do
-            if win:isStandard() and win:isVisible() then
-                local app = win:application()
-                if app then
-                    local appName = app:name()
-                    local positionID = appPositions[appName]
-
-                    if positionID then
-                        local config = getMonitorConfigByPositionID(positionID)
-                        if config then
-                            moveWindowToMonitorInternal(config, win)
-                            restored = restored + 1
-                            print(string.format("[Load-Force] %s -> Config: %s",
-                                appName, positionID))
-                        end
+                -- Find entry for current nscreenw
+                for _, entry in ipairs(entries) do
+                    if entry.nscreenw == nscreenw then
+                        positionID = entry.position_id
+                        appName = entry.app_name
+                        break
                     end
                 end
-            end
-        end
-    else
-        -- NORMAL MODE: Match by window_id
-        for _, win in ipairs(allWindows) do
-            if win:isStandard() and win:isVisible() then
-                local windowId = tostring(win:id())
-                local savedPos = data.window_positions[windowId]
 
-                if savedPos and savedPos.position_id then
-                    local config = getMonitorConfigByPositionID(savedPos.position_id)
+                if positionID then
+                    local config = getMonitorConfigByPositionID(positionID)
                     if config then
                         moveWindowToMonitorInternal(config, win)
                         restored = restored + 1
                         print(string.format("[Load] %s (ID:%s) -> Config: %s",
-                            savedPos.app_name, windowId, savedPos.position_id))
+                            appName, windowId, positionID))
                     end
                 end
             end
@@ -268,6 +298,7 @@ function obj:loadPosition(force)
         informativeText = string.format("%d window(s) restored", restored)
     }):send()
 
+    self:scheduleGarbageCollection()
     return self
 end
 
@@ -298,11 +329,16 @@ function obj:cleanupStaleEntries()
     end
 
     local removed = 0
-    for windowId, entry in pairs(data.window_positions) do
+    for windowId, entries in pairs(data.window_positions) do
+        -- If window ID is no longer active, remove the ENTIRE entry (all screen configs)
+        -- The user specified: "O garbagecoletor apenas poderá apagar o APP não usado, e não o objeto de nscreenw não usado."
+        -- This means if the window/app is closed, we remove its data.
+        -- But we do NOT remove entries for nscreenw=2 just because we are currently on nscreenw=3.
+
         if not activeWindows[windowId] then
             data.window_positions[windowId] = nil
             removed = removed + 1
-            print(string.format("[GC] Removed stale ID: %s (%s)", windowId, entry.app_name))
+            print(string.format("[GC] Removed stale ID: %s", windowId))
         end
     end
 
@@ -319,6 +355,10 @@ end
 function obj:init()
     hs.window.animationDuration = 0
     print("MonitorWindowApp Spoon: init() called")
+
+    -- Load configuration internally
+    self:loadConfig()
+
     return self
 end
 

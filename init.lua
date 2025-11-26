@@ -8,17 +8,9 @@ print("===========================================")
 -- ========== CONFIGURE PATH FOR COMMON UTILITIES ==========
 package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
 
--- ========== LOAD JSON CONFIGURATION ==========
-local configParser = require("common.configParser")
-local configPath = hs.configdir .. "/ProfileSettings.json"
-local appConfig = configParser.loadConfig(configPath)
-
 -- ========== LOAD SPOONS ==========
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
-
--- ========== INJECT CONFIGURATION INTO SPOONS ==========
-spoon.MonitorWindowApp:setConfig(appConfig)
 
 -- ========== CENTRALIZED HOTKEY MANAGEMENT ==========
 local globalHotkeys = {}
@@ -33,8 +25,6 @@ local function registerAllHotkeys()
     hk:delete()
   end
   globalHotkeys = {}
-
-  -- ========== MONITOR NAVIGATION & SAVE ==========
 
   -- ========== MONITOR NAVIGATION & SAVE ==========
 
@@ -68,12 +58,7 @@ local function registerAllHotkeys()
   table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "6", function()
     spoon.MonitorWindowApp:loadPosition()
   end))
-  print("  Alt+6 -> Restore positions (window_id)")
-
-  table.insert(globalHotkeys, hs.hotkey.bind({ "alt", "shift" }, "6", function()
-    spoon.MonitorWindowApp:loadPosition(true)
-  end))
-  print("  Alt+Shift+6 -> Restore positions FORCE (app_name)")
+  print("  Alt+6 -> Restore positions")
 
   -- ========== APP CYCLING HOTKEYS ==========
   table.insert(globalHotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
@@ -167,22 +152,31 @@ hs.hotkey.bind({ "alt", "shift" }, "1", function()
 end)
 
 -- ========== AUTO RELOAD ==========
+local reloadTimer = nil
+
 local function reloadConfig(files)
   local doReload = false
   for _, file in pairs(files) do
-    -- Ignore storage directory (contains position data that shouldn"t trigger reload)
+    -- Ignore storage directory (contains position data that shouldn't trigger reload)
     if not file:match("storage/") and (file:sub(-4) == ".lua" or file:sub(-5) == ".json") then
       doReload = true
       print(string.format("[AutoReload] Change detected: %s", file))
     end
   end
+
   if doReload then
-    print("[AutoReload] Reloading Hammerspoon...")
-    hs.reload()
+    -- Debounce: wait 0.5s before reloading to avoid cascading reloads
+    if reloadTimer then
+      reloadTimer:stop()
+    end
+    reloadTimer = hs.timer.doAfter(0.5, function()
+      print("[AutoReload] Reloading Hammerspoon...")
+      hs.reload()
+    end)
   end
 end
 
-local configWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon/", reloadConfig):start()
+local configWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
 
 print("==========================================")
 print("Hammerspoon loaded successfully!")
