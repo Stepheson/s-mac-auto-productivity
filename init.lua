@@ -16,9 +16,7 @@ hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
 
--- ========== HOTKEY DEFINITIONS (NATIVE) ==========
--- We define hotkeys natively so they work even if AutomationControl is missing.
--- We collect OPERATIONAL hotkeys in a table to pass to AutomationControl for management.
+-- ========== HOTKEYS ==========
 
 local hotkeys = {}
 
@@ -83,7 +81,3 @@ if spoon.AutomationControl then
 else
   print("⚠️ AutomationControl Spoon not found. Hotkeys active in unmanaged mode.")
 end
-
-print("==========================================")
-print("Hammerspoon Configuration Loaded!")
-print("==========================================")

@@ -88,7 +88,6 @@ function obj:start()
 
     local message = "Automation Active\n" .. table.concat(spoonNames, "\n")
     hs.alert.show("🟢 " .. message)
-    print("[AutomationControl] Started")
 
     return self
 end
@@ -106,7 +105,6 @@ function obj:stop()
     end
 
     hs.alert.show("🔴 Automation Paused")
-    print("[AutomationControl] Stopped")
 
     return self
 end
@@ -122,7 +120,6 @@ end
 
 --- Initialize the Spoon
 function obj:init()
-    print("AutomationControl Spoon: init() called")
     return self
 end
 

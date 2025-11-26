@@ -127,34 +127,23 @@ function obj:moveToMonitor(positionID, shouldSave)
         return self
     end
 
-    print(string.format("[moveToMonitor] Called with positionID='%s', shouldSave=%s", positionID, tostring(shouldSave)))
-
     local config = getMonitorConfigByPositionID(positionID)
     if not config then
-        print(string.format("⚠️  No configuration found with positionID='%s'", positionID))
         hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. positionID }):send()
         return self
     end
-
-    print(string.format("[moveToMonitor] Config found: monitorName='%s'", config.monitorName))
 
     -- Attempt to move window (this will check if monitor is connected)
     local success = moveWindowToMonitorInternal(config, win)
 
     if not success then
-        print(string.format("[moveToMonitor] FAILED - Monitor '%s' not available, will NOT save", config.monitorName))
         hs.alert.show(string.format("Monitor not available: %s", config.monitorName), 2)
         return self
     end
 
-    print("[moveToMonitor] SUCCESS - Window moved")
-
     -- Only save if move was successful
     if shouldSave then
-        print("[moveToMonitor] Calling saveCurrentPosition...")
         self:saveCurrentPosition(positionID)
-    else
-        print("[moveToMonitor] shouldSave=false, skipping save")
     end
 
     return self
@@ -192,7 +181,6 @@ function obj:saveCurrentPosition(positionID)
     -- Determine current number of screens
     local screens = hs.screen.allScreens()
     local nscreenw = #screens
-    print(string.format("[Save] Detected %d screen(s)", nscreenw))
 
     -- Initialize array for this window if it doesn't exist
     if not data.window_positions[windowId] then
@@ -201,7 +189,6 @@ function obj:saveCurrentPosition(positionID)
 
     -- If it was previously an object (old format), convert to array
     if type(data.window_positions[windowId]) ~= "table" or data.window_positions[windowId].position_id then
-        print("[Save] Converting old format to array for ID: " .. windowId)
         data.window_positions[windowId] = {}
     end
 
@@ -211,7 +198,6 @@ function obj:saveCurrentPosition(positionID)
     -- Update existing entry for this nscreenw
     for i, entry in ipairs(entries) do
         if entry.nscreenw == nscreenw then
-            print(string.format("[Save] Updating existing entry for %d screens (Index: %d)", nscreenw, i))
             entry.position_id = positionID
             entry.app_name = appName
             found = true
@@ -221,7 +207,6 @@ function obj:saveCurrentPosition(positionID)
 
     -- Add new entry if not found
     if not found then
-        print(string.format("[Save] Creating new entry for %d screens", nscreenw))
         table.insert(entries, {
             nscreenw = nscreenw,
             position_id = positionID,
@@ -230,12 +215,6 @@ function obj:saveCurrentPosition(positionID)
     end
 
     local success = storageManager.save(STORAGE_ID, data)
-    if success then
-        print(string.format("[Save] Success! %s (ID:%s) -> Config: %s [Screens: %d]",
-            appName, windowId, positionID, nscreenw))
-    else
-        print("[Save] Failed to write to storage!")
-    end
 
     self:scheduleGarbageCollection()
     return success
@@ -285,11 +264,6 @@ function obj:loadPosition()
                         local success = moveWindowToMonitorInternal(config, win)
                         if success then
                             restored = restored + 1
-                            print(string.format("[Load] %s (ID:%s) -> Config: %s",
-                                appName, windowId, positionID))
-                        else
-                            print(string.format("[Load] SKIPPED %s (ID:%s) - Monitor not available",
-                                appName, windowId))
                         end
                     end
                 end
