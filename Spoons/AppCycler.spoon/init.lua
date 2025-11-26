@@ -24,7 +24,6 @@ local managerMonitorsMac = require("common.managerMonitorsMac")
 --- @return self
 function obj:cycle(mode)
   if isExecuting then
-    print("[AppCycler] Skipped (Debounce/Lock)")
     return self
   end
 
@@ -38,7 +37,6 @@ function obj:cycle(mode)
 
   local winInfo = managerMonitorsMac.getFocusedWindowInfo()
   if not winInfo then
-    print("[AppCycler] No window focused")
     isExecuting = false
     return self
   end
@@ -50,7 +48,6 @@ function obj:cycle(mode)
   local windows = managerMonitorsMac.getVisibleWindowsOnScreen(screenId, mode)
 
   if #windows < 2 then
-    print("[AppCycler] Less than 2 targets, nothing to cycle")
     isExecuting = false
     return self
   end
@@ -76,7 +73,6 @@ function obj:cycle(mode)
   -- Focus next window
   local target = windows[nextIndex]
   if target then
-    print(string.format("[AppCycler] Cycling to: %s (ID: %d)", target.name, target.window:id()))
     target.window:focus()
 
     -- Visual feedback

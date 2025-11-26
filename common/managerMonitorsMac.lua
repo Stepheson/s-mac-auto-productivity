@@ -112,8 +112,7 @@ function M.printConnectedMonitors()
     local screens = hs.screen.allScreens()
     print("\n[DEBUG] Connected Monitors:")
     for i, s in ipairs(screens) do
-        print(string.format("  %d. Name: '%s' | ID: %s | Frame: %s",
-            i, s:name(), s:id(), s:frame()))
+        print(string.format("  %d. Name: '%s' | ID: %s", i, s:name(), s:id()))
     end
     print("---------------------------------------------------\n")
 end
