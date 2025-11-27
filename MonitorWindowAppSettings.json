@@ -1,9 +1,17 @@
+**** REMOVE THESE COMMENTS BEFORE USE ****
+JSON does not support comments natively. You must delete this block.
+    
+** CREATE YOUR OWN DEFINITION FOR EACH MONITOR ** 
+Get your monitor names by running: 
+managerMonitorsMac.printConnectedMonitors() 
+(Check the Hammerspoon Console for output)
+
 [
   {
-    "positionID": "dell_standard",
-    "monitorName": "DELL P2719H",
+    "positionID": "dell_standard",  <- *[Custom ID definition 1 name]
+    "monitorName": "DELL P2719H",   <- *[Your exact monitor name]
     "margins": {
-      "left": 0.043,
+      "left": 0.043,                <- *[Custom Margins: 0.0 to 1.0 per Definition]
       "top": 0.23,
       "bottom": 0.02,
       "right": 0
