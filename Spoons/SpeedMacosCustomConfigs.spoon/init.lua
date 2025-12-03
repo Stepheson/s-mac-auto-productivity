@@ -21,14 +21,20 @@ obj.menuItems = {}
 local scriptPath = hs.spoons.scriptPath()
 print("SpeedMacosCustomConfigs: scriptPath is " .. tostring(scriptPath))
 
-local finderPath = scriptPath .. "modules/finder.lua"
-local screenshotPath = scriptPath .. "modules/screenshot.lua"
+local function loadModule(moduleName)
+    local modulePath = scriptPath .. "modules/" .. moduleName .. ".lua"
+    print("SpeedMacosCustomConfigs: Loading " .. moduleName .. " from " .. modulePath)
+    local success, module = pcall(dofile, modulePath)
+    if not success then
+        print("SpeedMacosCustomConfigs: Error loading " .. moduleName .. ": " .. module)
+        return nil
+    end
+    return module
+end
 
-print("SpeedMacosCustomConfigs: Loading finder from " .. finderPath)
-local finder = dofile(finderPath)
-
-print("SpeedMacosCustomConfigs: Loading screenshot from " .. screenshotPath)
-local screenshot = dofile(screenshotPath)
+local finder = loadModule("finder")
+local screenshot = loadModule("screenshot")
+local dock = loadModule("dock")
 
 -- Function to aggregate menu items from all modules
 function obj:buildMenu()
@@ -59,21 +65,24 @@ function obj:buildMenu()
 
     -- Add items from modules
     if finder then
-        print("SpeedMacosCustomConfigs: Getting finder items")
         addItems(finder.getMenuItems())
     else
-        print("SpeedMacosCustomConfigs: Error - finder module is nil")
         table.insert(self.menuItems, { text = "Error: Finder module not loaded", subText = "Check console for details" })
         table.insert(self.menuActions, function() end)
     end
 
     if screenshot then
-        print("SpeedMacosCustomConfigs: Getting screenshot items")
         addItems(screenshot.getMenuItems())
     else
-        print("SpeedMacosCustomConfigs: Error - screenshot module is nil")
         table.insert(self.menuItems,
             { text = "Error: Screenshot module not loaded", subText = "Check console for details" })
+        table.insert(self.menuActions, function() end)
+    end
+
+    if dock then
+        addItems(dock.getMenuItems())
+    else
+        table.insert(self.menuItems, { text = "Error: Dock module not loaded", subText = "Check console for details" })
         table.insert(self.menuActions, function() end)
     end
 
