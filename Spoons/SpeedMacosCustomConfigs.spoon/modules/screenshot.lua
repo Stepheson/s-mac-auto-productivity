@@ -14,16 +14,29 @@ function obj.setFormatJPG()
     hs.task.new("/usr/bin/killall", nil, { "SystemUIServer" }):start()
 end
 
+-- Function to get current format
+function obj.getCurrentFormat()
+    local output, status, type, rc = hs.execute("defaults read com.apple.screencapture type")
+    if output then
+        return output:gsub("%s+", "") -- Trim whitespace
+    end
+    return ""
+end
+
 -- Function to return menu items
 function obj.getMenuItems()
+    local current = obj.getCurrentFormat()
+    local pngPrefix = (current == "png") and "(*) " or "( ) "
+    local jpgPrefix = (current == "jpg") and "(*) " or "( ) "
+
     return {
         {
-            text = "Set Screenshot Format to PNG",
+            text = pngPrefix .. "Set Screenshot Format to PNG",
             subText = "defaults write com.apple.screencapture type png",
             func = obj.setFormatPNG
         },
         {
-            text = "Set Screenshot Format to JPG",
+            text = jpgPrefix .. "Set Screenshot Format to JPG",
             subText = "defaults write com.apple.screencapture type jpg",
             func = obj.setFormatJPG
         }
