@@ -15,6 +15,7 @@ print("===========================================")
 hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
+hs.loadSpoon("SpeedMacosCustomConfigs")
 
 -- ========== HOTKEYS ==========
 
@@ -35,6 +36,7 @@ end)
 
 -- Monitor Navigation
 table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "1", function()
+  print("Hotkey Alt+1 pressed")
   spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
 end))
 
@@ -59,6 +61,11 @@ table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
   spoon.AppCycler:cycle(0)
 end))
 
+-- SpeedMacosCustomConfigs
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "7", function()
+  spoon.SpeedMacosCustomConfigs:showMenu()
+end))
+
 -- Debug Tools
 table.insert(hotkeys, hs.hotkey.bind({ "alt", "shift" }, "m", function()
   local managerMonitorsMac = require("common.managerMonitorsMac")
@@ -76,6 +83,7 @@ hs.hotkey.bind({ "cmd" }, "h", function() end)
 if spoon.AutomationControl then
   spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
   spoon.AutomationControl:registerSpoon(spoon.AppCycler)
+  spoon.AutomationControl:registerSpoon(spoon.SpeedMacosCustomConfigs)
   spoon.AutomationControl:registerHotkeys(hotkeys)
   spoon.AutomationControl:start()
 else
