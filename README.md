@@ -105,6 +105,25 @@ if spoon.AutomationControl then
 end
 ```
 
+### 4. Advanced: Left vs Right Modifiers (`SideHotkey`)
+
+This project uses a custom module `common/SideHotkey.lua` to distinguish between **Left** and **Right** modifiers (Alt/Option, Cmd, Shift). This allows you to use `Left Alt` for automation while keeping `Right Alt` free for system defaults (or vice-versa).
+
+**Usage:**
+
+```lua
+local SideHotkey = require("common.SideHotkey")
+
+-- Bind specific side (e.g., Left Alt + 1)
+SideHotkey.bind({"leftAlt"}, "1", function()
+    print("Left Alt pressed!")
+end)
+
+-- The standard hs.hotkey would trigger on BOTH sides.
+```
+
+Supported modifiers: `leftAlt`, `rightAlt`, `leftCmd`, `rightCmd`, `leftShift`, `rightShift`, `leftCtrl`, `rightCtrl`.
+
 ## 🛠️ Debugging
 
 - **List Monitors**: `Alt + Shift + M` (Prints monitor names/IDs to Console).
