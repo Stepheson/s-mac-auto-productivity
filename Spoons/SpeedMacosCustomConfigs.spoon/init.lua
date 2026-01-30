@@ -9,7 +9,7 @@ obj.__index = obj
 -- Metadata
 obj.name = "SpeedMacosCustomConfigs"
 obj.version = "1.0"
-obj.author = "Antigravity"
+obj.author = "Stepheson Alves"
 obj.homepage = "https://github.com/Hammerspoon/Spoons"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
