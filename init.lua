@@ -26,11 +26,11 @@ local SideHotkey = require("common.SideHotkey")
 
 -- 1. Master Switch (Always Active)
 -- These are NOT added to the 'hotkeys' list, so AutomationControl doesn't disable them.
-SideHotkey.bind({ "leftAlt", "shift" }, "0", function()
+SideHotkey.bind({ "rightAlt", "rightShift" }, "0", function()
   spoon.AutomationControl:stop()
 end)
 
-SideHotkey.bind({ "leftAlt", "shift" }, "1", function()
+SideHotkey.bind({ "rightAlt", "rightShift" }, "1", function()
   spoon.AutomationControl:start()
 end)
 
@@ -70,7 +70,7 @@ table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "7", function()
 end))
 
 -- Debug Tools
-table.insert(hotkeys, SideHotkey.bind({ "leftAlt", "shift" }, "m", function()
+table.insert(hotkeys, SideHotkey.bind({ "rightAlt", "rightShift" }, "m", function()
   local managerMonitorsMac = require("common.managerMonitorsMac")
   managerMonitorsMac.printConnectedMonitors()
 end))
