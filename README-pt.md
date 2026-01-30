@@ -1,5 +1,5 @@
 <p align="right"><code>Language:</code>
-    <a href="README-pt.md"><img src="https://hatscripts.github.io/circle-flags/flags/gb.svg" width="20" alt="England" valign="middle"></a>
+    <a href="README.md"><img src="https://hatscripts.github.io/circle-flags/flags/gb.svg" width="20" alt="England" valign="middle"></a>
 </p>
 
 # s-MAC-Auto-Productivity
