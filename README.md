@@ -1,3 +1,7 @@
+<p align="right"><code>Language:</code>
+    <a href="README-pt.md"><img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="20" alt="Br" valign="middle"></a>
+</p>
+
 # s-MAC-Auto-Productivity
 
 A modular, robust, and clean automation suite for macOS using [Hammerspoon](https://www.hammerspoon.org/).
