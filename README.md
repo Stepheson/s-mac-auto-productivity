@@ -1,118 +1,213 @@
+<p align="right"><code>Language:</code>
+    <a href="README-pt.md"><img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="20" alt="Br" valign="middle"></a>
+</p>
+
 # s-MAC-Auto-Productivity
 
-A modular, robust, and clean automation suite for macOS using [Hammerspoon](https://www.hammerspoon.org/). Designed to enhance productivity with multi-monitor window management and intelligent app cycling.
+A modular, robust, and clean automation suite for macOS using [Hammerspoon](https://www.hammerspoon.org/).
+
+> **Compatibility**: Tested on macOS **Sequoia** and **Tahoe**.
 
 ## 🚀 Overview
 
-This project provides a set of independent "Spoons" (modules) that work together to:
+This project is built around independent "Spoons" (modules) tailored for this project, which can be easily expanded for future Spoons or existing ones. It allows:
 
-1.  **Manage Windows**: Instantly move windows to specific monitors and positions.
-2.  **Cycle Apps**: Smart `Alt+Tab` replacement that cycles through windows on the _current_ monitor only.
-3.  **Control Automation**: A master switch to pause/resume all hotkeys globally.
+- **Independent Management**: Manage Spoons independently, making it easier to work with diverse modules with organized shortcuts.
+- **Agile Productivity**: Current Spoons allow easy window swapping between monitors via shortcuts with pre-configured dimensions, and quick macOS system setting toggles. And more to be implemented.
 
-## 📦 Spoons
+## 📑 Table of Contents
 
-### 1. MonitorWindowApp.spoon
+**🥄 Spoons (Action Modules)**
 
-A powerful window manager that remembers exactly where your apps should be, adapting to your environment.
+- [MonitorWindowApp.spoon](#-monitorwindowappspoon)
+- [AppCycler.spoon](#-appcyclerspoon)
+- [SpeedMacosCustomConfigs.spoon](#-speedmacoscustomconfigsspoon)
+- [AutomationControl.spoon](#-automationcontrolspoon)
 
-- **Smart Profiles (Monitor Count)**: It automatically detects how many monitors are connected (e.g., "1 Monitor", "2 Monitors", "3 Monitors") and saves a unique layout for each scenario.
-  - _Example_: You can have a "Home Office" setup with 3 monitors where VSCode is on the left and Chrome on the right. When you travel and use only your MacBook (1 monitor), it switches to a "Travel" profile where everything is maximized on the single screen. When you return home, it remembers your 3-monitor layout instantly.
-- **Auto-Positioning**: Automatically restores window positions and dimensions when you switch contexts.
-- **Auto-Reload**: Configuration changes are applied instantly without restarting Hammerspoon.
-- **Smart Garbage Collection**: Automatically cleans up settings for closed apps (respecting hidden Spaces) to keep your config clean.
+**🗜️ Common Resources (Management Tools)** 
 
-### 2. AppCycler.spoon
-
-An intelligent window switcher restricted to the current monitor. Prevents the chaos of jumping between screens.
-
-- **Features**:
-  - **Mode 0 (Default)**: Cycle all visible windows (Stable order: Name + ID).
-  - **Mode 1**: Cycle unique applications (one window per app).
-  - **Mode 2**: Cycle instances of the current app only.
-
-### 3. AutomationControl.spoon (Manager Extension)
-
-The manager. It handles the lifecycle of other Spoons and hotkeys.
-
-- **Features**:
-  - Centralized Start/Stop for all registered hotkeys.
-  - Visual feedback (Alerts) when automation is paused/resumed.
+- [Advanced: Left vs Right Modifiers (SideHotkey)](#-advanced-left-vs-right-modifiers-sidehotkey)
 
 ---
 
-## ⚙️ Configuration (`init.lua`)
+---
 
-The `init.lua` file is designed to be a clean entry point. It wires the Spoons and defines hotkeys.
+## 🥄 SPOONS LIST
 
-### Basic Setup
+### 🎯 `MonitorWindowApp.spoon`
+
+**Goal**: Quickly move windows between monitors installed on the Mac via keyboard shortcuts. When moving to a monitor, the window is identified and adjusted to the pre-configured dimension for apps on that monitor. You can configure more than one shortcut for the same monitor.
+
+Positions are saved in a way that allows layout recovery if windows move out of place (due to machine lock or monitor removal). Positions are saved by **monitor count groups** (e.g., a configuration for "1 monitor" and another for "2 monitors" are saved independently).
+
+#### Configuration
+
+1.  **Define Window Dimensions (`MonitorWindowAppSettings.json`)**:
+    Create or edit the `MonitorWindowAppSettings.json` file in the root.
+    - `monitorName`: Name as recognized by the macOS operating system. (Go to macOS Display settings or activate the project debug mode `Right Alt + Right Shift + m` and check the console).
+    - `margins`: Supported margins: `left`, `right`, `top`, `bottom`.
+
+    ```json
+    [
+      {
+        "positionID": "monitor_MX279_margin_spaceleft_top",
+        "monitorName": "MX279",
+        "margins": { "left": 0.025, "top": 0.23 }
+      },
+      {
+        "positionID": "builtin_standard",
+        "monitorName": "Built-in Retina Display",
+        "margins": { "left": 0.035 }
+      }
+    ]
+    ```
+
+2.  **Bind Hotkeys (`init.lua`)**:
+    Bind a key to move the current window to the defined position.
+
+    ```lua
+    -- Move to "builtin_standard" position
+    table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "3", function()
+      spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
+    end))
+    ```
+
+---
+
+### 🎯 `AppCycler.spoon`
+
+**Goal**: An intelligent window switcher restricted to the **current monitor**. Avoids the chaos of jumping between screens when you just want to switch context locally.
+
+- **Mode 0 (Default)**: Cycles all windows even if there is more than one instance of the same app open in the window.
+- **Mode 1**: Cycles windows only between different apps.
+- **Mode 2**: Cycles instances only between instances of the same app, the current one on screen.
+
+#### Usage
+
+Use the function `spoon.AppCycler:cycle({Mode})` in your shortcut.
 
 ```lua
--- Load Spoons
-hs.loadSpoon("AutomationControl")
-hs.loadSpoon("MonitorWindowApp")
-hs.loadSpoon("AppCycler")
-
--- Define Hotkeys Table
-local hotkeys = {}
-```
-
-### 1. Master Switch (Always Active)
-
-These hotkeys are **NOT** added to the `hotkeys` table, so `AutomationControl` cannot disable them. They remain active even when automation is paused.
-
-```lua
-hs.hotkey.bind({"alt", "shift"}, "0", function()
-    spoon.AutomationControl:stop()
-end)
-
-hs.hotkey.bind({"alt", "shift"}, "1", function()
-    spoon.AutomationControl:start()
-end)
-```
-
-### 2. Operational Hotkeys (Managed)
-
-These are added to the `hotkeys` table. `AutomationControl` will enable/disable them as needed.
-
-```lua
--- Move to Monitor 1
-table.insert(hotkeys, hs.hotkey.bind({"alt"}, "1", function()
-    spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
-end))
-
--- Cycle Apps (Mode 0 = All Windows)
-table.insert(hotkeys, hs.hotkey.bind({"alt"}, "tab", function()
+-- Cycle windows on current monitor (Alt + Tab)
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
     spoon.AppCycler:cycle(0)
 end))
 ```
 
-### 3. Wiring AutomationControl
+---
 
-Finally, register the hotkeys and start the system.
+### 🎯 `SpeedMacosCustomConfigs.spoon`
+
+**Goal**: A quick-access menu for useful macOS system settings.
+
+This Spoon is divided into internal modules:
+
+1.  **Finder**: Show or hide hidden files (same as macOS shortcut `cmd+shift+.`).
+2.  **Screenshot**: Choose capture format (PNG, JPG).
+3.  **Dock**: Enable/Disable Dock auto-hide.
+
+#### Usage
+
+Trigger the menu with a hotkey (Default: `Alt + 7`):
+
+```lua
+table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "7", function()
+  spoon.SpeedMacosCustomConfigs:showMenu()
+end))
+```
+
+---
+
+### 🎯 `AutomationControl.spoon`
+
+**Goal**: The central manager. It controls the lifecycle (Start/Stop) of other Spoons and shortcuts. Useful for temporarily disabling all automation.
+
+- **Visual Feedback**: Shows alerts when Paused (🔴) or Resumed (🟢).
+
+#### Configuration
+
+For the manager to work, you need to **register** the Spoons and the hotkeys table in `init.lua`.
+
+**Pre-configured Shortcuts (Example):**
+
+- Disable: `Right Alt` + `Right Shift` + `0`
+- Enable: `Right Alt` + `Right Shift` + `1`
 
 ```lua
 if spoon.AutomationControl then
-    -- Register Spoons for status updates
+    -- Register Spoons for control
     spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
     spoon.AutomationControl:registerSpoon(spoon.AppCycler)
 
-    -- Register Hotkeys for management
+    -- Register hotkeys table
     spoon.AutomationControl:registerHotkeys(hotkeys)
 
-    -- Start
+    -- Start system
     spoon.AutomationControl:start()
 end
 ```
 
-## 🛠️ Debugging
+---
 
-- **List Monitors**: `Alt + Shift + M` (Prints monitor names/IDs to Console).
-- **Console**: Check the Hammerspoon Console for logs if something isn't working.
+## 🗜️ Common Resources
+
+### 🎯 `Advanced: Left vs Right Modifiers (`SideHotkey`)`
+
+This is an extension belonging to `common/SideHotkey.lua` resources, to distinguish between Left and Right modifier keys (Alt/Option, Cmd, Shift).
+
+This allows you to use the **Left Alt** key for your custom automations, keeping the **Right Alt** key free for standard macOS shortcuts (or vice-versa). If the shortcut does not use this feature, the predefined key will be triggered regardless of the keyboard side.
+
+Supported modifiers: `leftAlt`, `rightAlt`, `leftCmd`, `rightCmd`, `leftShift`, `rightShift`, `leftCtrl`, `rightCtrl`.
+
+#### Usage
+
+**WITHOUT SideHotkey (Default Behavior):**
+Any Alt key triggers the command.
+
+```lua
+hs.hotkey.bind({"alt"}, "1", function() ... end)
+```
+
+**WITH SideHotkey (Side Distinction):**
+Only the LEFT Alt key triggers.
+
+```lua
+local SideHotkey = require("common.SideHotkey")
+
+-- Triggers only with Left Alt
+SideHotkey.bind({"leftAlt"}, "1", function() ... end)
+```
+
+> **TIP**: It is possible to use mixed shortcuts, some using `hs.hotkey` (both sides) and others using `SideHotkey` (specific side) in the same `init.lua` file.
+
+---
+
+---
 
 ## 📂 Project Structure
 
-- `init.lua`: Main configuration.
-- `Spoons/`: Individual modules.
-- `common/`: Shared utilities (`managerMonitorsMac`, `storageManager`, `autoReload`).
-- `storage/`: JSON files where window positions are saved.
+```
+├── init.lua                   # Entry point (main config)
+├── MonitorWindowAppSettings.json # User position config
+├── common/                    # Common Resources
+│   ├── SideHotkey.lua         # Left/Right key distinction
+│   ├── managerMonitorsMac.lua # Monitor detection
+│   └── ...
+├── storage/                   # Configuration storage per Spoon
+│   └── ...
+└── Spoons/                    # Independent Modules (Actions)
+    ├── MonitorWindowApp.spoon # Window Management
+    ├── AppCycler.spoon        # App Switcher
+    ├── AutomationControl.spoon# Lifecycle Manager
+    └── SpeedMacosCustomConfigs.spoon # System Tools
+        └── modules/           # (finder, screenshot, dock)
+```
+
+## 🛠️ Debugging
+
+- **List Monitors**: `Right Alt + Right Shift + M` (Prints monitor names/IDs to Console).
+- **Console**: Check the Hammerspoon Console if something isn't working.
+
+---
+
+> [!NOTE]
+> The "Alt" naming keys are the same as the Option keys on a Mac.

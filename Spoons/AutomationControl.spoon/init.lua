@@ -70,17 +70,32 @@ end
 
 --- Start automation (enable managed hotkeys)
 function obj:start()
-    if isActive then return self end
+    print("AutomationControl: start() called")
+    if isActive then
+        print("AutomationControl: already active")
+        return self
+    end
 
     isActive = true
+    print("AutomationControl: enabling hotkeys")
     enableAllHotkeys()
 
     -- Start registered spoons
+    print("AutomationControl: starting spoons")
     for _, s in ipairs(registeredSpoons) do
-        if s.start then s:start() end
+        print("AutomationControl: checking spoon " .. tostring(s.name))
+        if s.start then
+            print("AutomationControl: starting spoon " .. tostring(s.name))
+            local status, err = pcall(function() s:start() end)
+            if not status then
+                print("AutomationControl: ERROR starting spoon " .. tostring(s.name) .. ": " .. tostring(err))
+                hs.alert.show("⚠️ Error starting " .. tostring(s.name))
+            end
+        end
     end
 
     -- Show status
+    print("AutomationControl: showing status")
     local spoonNames = {}
     for _, s in ipairs(registeredSpoons) do
         table.insert(spoonNames, "• " .. s.name)

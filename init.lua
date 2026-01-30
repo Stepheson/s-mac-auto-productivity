@@ -15,18 +15,22 @@ print("===========================================")
 hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
+hs.loadSpoon("SpeedMacosCustomConfigs")
 
 -- ========== HOTKEYS ==========
 
 local hotkeys = {}
 
+-- ========== SIDE HOTKEY MODULE ==========
+local SideHotkey = require("common.SideHotkey")
+
 -- 1. Master Switch (Always Active)
 -- These are NOT added to the 'hotkeys' list, so AutomationControl doesn't disable them.
-hs.hotkey.bind({ "alt", "shift" }, "0", function()
+SideHotkey.bind({ "rightAlt", "rightShift" }, "0", function()
   spoon.AutomationControl:stop()
 end)
 
-hs.hotkey.bind({ "alt", "shift" }, "1", function()
+SideHotkey.bind({ "rightAlt", "rightShift" }, "1", function()
   spoon.AutomationControl:start()
 end)
 
@@ -34,33 +38,39 @@ end)
 -- These are added to the list to be disabled on stop().
 
 -- Monitor Navigation
-table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "1", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "1", function()
+  print("Hotkey LeftAlt+1 pressed")
   spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
 end))
 
-table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "2", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "2", function()
   spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
 end))
 
-table.insert(hotkeys, hs.hotkey.bind({ "alt", "shift" }, "2", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt", "shift" }, "2", function()
   spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
 end))
 
-table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "3", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "3", function()
   spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
 end))
 
-table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "6", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "6", function()
   spoon.MonitorWindowApp:loadPosition()
 end))
 
 -- App Cycling
-table.insert(hotkeys, hs.hotkey.bind({ "alt" }, "tab", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "tab", function()
   spoon.AppCycler:cycle(0)
 end))
 
+-- SpeedMacosCustomConfigs
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "7", function()
+  spoon.SpeedMacosCustomConfigs:showMenu()
+end))
+
 -- Debug Tools
-table.insert(hotkeys, hs.hotkey.bind({ "alt", "shift" }, "m", function()
+table.insert(hotkeys, SideHotkey.bind({ "rightAlt", "rightShift" }, "m", function()
   local managerMonitorsMac = require("common.managerMonitorsMac")
   managerMonitorsMac.printConnectedMonitors()
 end))
@@ -76,6 +86,7 @@ hs.hotkey.bind({ "cmd" }, "h", function() end)
 if spoon.AutomationControl then
   spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
   spoon.AutomationControl:registerSpoon(spoon.AppCycler)
+  spoon.AutomationControl:registerSpoon(spoon.SpeedMacosCustomConfigs)
   spoon.AutomationControl:registerHotkeys(hotkeys)
   spoon.AutomationControl:start()
 else
