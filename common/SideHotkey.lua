@@ -44,24 +44,30 @@ local function updateModifierState(event)
     local code = event:getKeyCode()
     local flags = event:getFlags()
 
-    -- Determine if this key event resulted in the modifier being ACTIVE or INACTIVE.
-    -- We assume standard mapping:
-    local isAlt = (code == KOD_LEFT_ALT or code == KOD_RIGHT_ALT)
-    local isCmd = (code == KOD_LEFT_CMD or code == KOD_RIGHT_CMD)
-    local isShift = (code == KOD_LEFT_SHIFT or code == KOD_RIGHT_SHIFT)
-    local isCtrl = (code == KOD_LEFT_CTRL or code == KOD_RIGHT_CTRL)
-
-    local isActive = false
-    if isAlt and flags.alt then isActive = true end
-    if isCmd and flags.cmd then isActive = true end
-    if isShift and flags.shift then isActive = true end
-    if isCtrl and flags.ctrl then isActive = true end
-
-    if isActive then
-        SideHotkey.activeSideCodes[code] = true
-    else
-        SideHotkey.activeSideCodes[code] = nil
+    -- Helper to handle toggle logic with safety cleanup
+    local function handleModifier(leftCode, rightCode, flagState)
+        if not flagState then
+            -- Safety: If global flag is off, BOTH sides must be off
+            SideHotkey.activeSideCodes[leftCode] = nil
+            SideHotkey.activeSideCodes[rightCode] = nil
+        else
+            -- Flag is active, and we received an event for one of these keys.
+            -- This implies a state change (Toggle) for that specific key.
+            if code == leftCode or code == rightCode then
+                if SideHotkey.activeSideCodes[code] then
+                    SideHotkey.activeSideCodes[code] = nil
+                else
+                    SideHotkey.activeSideCodes[code] = true
+                end
+            end
+        end
     end
+
+    -- Apply logic for each modifier group
+    handleModifier(KOD_LEFT_ALT, KOD_RIGHT_ALT, flags.alt)
+    handleModifier(KOD_LEFT_CMD, KOD_RIGHT_CMD, flags.cmd)
+    handleModifier(KOD_LEFT_SHIFT, KOD_RIGHT_SHIFT, flags.shift)
+    handleModifier(KOD_LEFT_CTRL, KOD_RIGHT_CTRL, flags.ctrl)
 
     return false
 end
