@@ -5,6 +5,42 @@ obj.author = "Stepheson Alves"
 obj.description = "Manages Finder visibility and hidden files."
 obj.parameter_schema = { "native", "forced" }
 
+-- Function to return menu items (Schema)
+function obj.getMenuItems(options)
+    options = options or {}
+    local mode = options.hiddenfiles or "native"
+
+    local funcToggle = obj.toggleHiddenFiles
+    if mode == "forced" then
+        funcToggle = obj.toggleHiddenFilesForced
+    end
+
+    local isShown = obj.getHiddenFilesState()
+
+    return {
+        {
+            type = "toggle",
+            label = "Hidden Files: " .. (mode == "forced" and "(Forced)" or "(Native)"),
+            description = "Toggle visibility of hidden files",
+            currentIndex = isShown and 2 or 1, -- 1=Hidden, 2=Shown
+            states = {
+                {
+                    label = "Hidden",
+                    action = funcToggle -- Will toggle to Show
+                },
+                {
+                    label = "Shown",
+                    action = funcToggle -- Will toggle to Hide
+                }
+            }
+        }
+    }
+end
+
+--------------------------------------------------------------------------------
+-- Functions
+--------------------------------------------------------------------------------
+---
 -- Function to toggle Hidden Files using Native Shortcut (No Kill) - Preferred
 function obj.toggleHiddenFiles()
     local finder = hs.appfinder.appFromName("Finder")
@@ -43,27 +79,16 @@ function obj.toggleHiddenFilesForced()
     print("[Finder] Toggled hidden files (Forced mode)")
 end
 
--- Function to return menu items
-function obj.getMenuItems(options)
-    -- Options is a table, e.g. { hiddenfiles = "forced" } handled by the Spoon
-
-    options = options or {}
-    local mode = options.hiddenfiles or "native"
-    local funcToCall = obj.toggleHiddenFiles
-    local menuText = "Toggle Hidden Files"
-
-    if mode == "forced" then
-        funcToCall = obj.toggleHiddenFilesForced
-        menuText = menuText .. " (Forced)"
+-- Helper to get current hidden files state
+function obj.getHiddenFilesState()
+    local output = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
+    if output then
+        local clean = output:gsub("%s+", ""):lower()
+        if clean == "1" or clean == "true" or clean == "yes" then
+            return true
+        end
     end
-
-    return {
-        {
-            text = menuText,
-            subText = "Toggle visibility of hidden files", -- Static text, no status
-            func = funcToCall
-        }
-    }
+    return false
 end
 
 return obj

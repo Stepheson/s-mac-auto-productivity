@@ -50,11 +50,23 @@ end
 -- Function to dynamically load modules from the 'modules' directory
 function obj:loadModules()
     local scriptPath = hs.spoons.scriptPath()
+    if not scriptPath then
+        print("SpeedMacosCustomConfigs: ERROR - scriptPath is nil")
+        return
+    end
+
     local modulesPath = scriptPath .. "modules/"
 
     print("SpeedMacosCustomConfigs: Scanning modules in " .. modulesPath)
 
+    -- Check if directory exists first
+    if not hs.fs.attributes(modulesPath) then
+        print("SpeedMacosCustomConfigs: ERROR - Directory not found: " .. modulesPath)
+        return
+    end
+
     -- Iterate over files in modules directory
+    -- Note: We use hs.fs.dir directly here to avoid issues with iterator state
     for file in hs.fs.dir(modulesPath) do
         if file ~= "." and file ~= ".." then
             local attr = hs.fs.attributes(modulesPath .. file)
@@ -62,19 +74,22 @@ function obj:loadModules()
                 local moduleName = file:sub(1, -5) -- remove .lua
                 local loadPath = modulesPath .. file
 
+                print("SpeedMacosCustomConfigs: Attempting to load " .. file)
                 local success, module = pcall(dofile, loadPath)
                 if success and type(module) == "table" then
                     -- Validate metadata interface
                     if module.name then
                         -- Store by internal name (e.g., "Finder")
                         obj.availableModules[module.name] = module
-                        print("SpeedMacosCustomConfigs: Registered module '" .. module.name .. "' (" .. file .. ")")
+                        print("SpeedMacosCustomConfigs: Registered module '" .. module.name .. "'")
                     else
                         print("SpeedMacosCustomConfigs: Skipped " .. file .. " (Missing 'name' metadata)")
                     end
                 else
                     print("SpeedMacosCustomConfigs: Error loading " .. file .. ": " .. tostring(module))
                 end
+            else
+                -- print("SpeedMacosCustomConfigs: Ignored " .. file)
             end
         end
     end
@@ -107,29 +122,15 @@ function obj:help()
     return self
 end
 
+-- Load Menu Generator
+local menuGenerator = require("common.MenuGenerator")
+
 -- Function to aggregate menu items from all modules
 function obj:buildMenu(params)
-    print("SpeedMacosCustomConfigs: Building menu...")
-    self.menuItems = {}
-    self.menuActions = {}
+    print("SpeedMacosCustomConfigs: Building menu via Generator...")
+    self.menuSchema = {}
 
     local options = parseParams(params)
-
-    -- Helper to add items
-    local function addItems(items)
-        if items and type(items) == "table" then
-            for _, item in ipairs(items) do
-                if item.func then
-                    table.insert(self.menuActions, item.func)
-                    item.func = nil
-                else
-                    table.insert(self.menuActions, function() end)
-                end
-                item.index = #self.menuActions
-                table.insert(self.menuItems, item)
-            end
-        end
-    end
 
     -- Sort modules by name for consistent menu order
     local names = {}
@@ -142,50 +143,42 @@ function obj:buildMenu(params)
     for _, name in ipairs(names) do
         local mod = self.availableModules[name]
         if mod.getMenuItems then
-            -- Match options case-insensitively
-            -- options keys are lowercased in parseParams (if we enforce it)
-            -- Let's check options["finder"] for module.name="Finder"
             local modOptions = options[name:lower()]
-
-            addItems(mod:getMenuItems(modOptions))
+            -- Get schema items
+            local items = mod:getMenuItems(modOptions)
+            if items then
+                for _, item in ipairs(items) do
+                    table.insert(self.menuSchema, item)
+                end
+            end
         end
     end
 
-    if #self.menuItems == 0 then
-        table.insert(self.menuItems, { text = "No items found", subText = "Modules loaded but returned no items" })
-        table.insert(self.menuActions, function() end)
+    if #self.menuSchema == 0 then
+        table.insert(self.menuSchema, {
+            type = "action",
+            label = "No items found",
+            description = "Modules loaded but returned no items"
+        })
     end
 
     -- Add "Help" option at the end
-    table.insert(self.menuActions, function() obj:help() end)
-    table.insert(self.menuItems, {
-        text = "Help / List Modules",
-        subText = "Print available modules and parameters to Console",
-        index = #self.menuActions
+    table.insert(self.menuSchema, {
+        type = "action",
+        label = "Help / List Modules",
+        description = "Print available modules and parameters to Console",
+        action = function() obj:help() end
     })
 
-    print("SpeedMacosCustomConfigs: Menu built with " .. #self.menuItems .. " items")
-end
-
--- Function to handle menu selection
-function obj:onChoice(choice)
-    if choice and choice.index then
-        local action = self.menuActions[choice.index]
-        if action then
-            action()
-        end
-    end
+    print("SpeedMacosCustomConfigs: Menu built with " .. #self.menuSchema .. " items")
 end
 
 -- Function to show the menu
 function obj:showMenu(params)
-    if not self.chooser then
-        self.chooser = hs.chooser.new(function(choice) self:onChoice(choice) end)
-    end
-
     self:buildMenu(params)
-    self.chooser:choices(self.menuItems)
-    self.chooser:show()
+
+    -- Use the common MenuGenerator
+    menuGenerator.show(self.menuSchema, "Speed Custom Configs")
 end
 
 -- Function to bind hotkeys
@@ -200,11 +193,7 @@ function obj:bindHotkeys(mapping)
     end
 end
 
--- Init
-function obj:init()
-    -- Load modules on initialization
-    self:loadModules()
-    return self
-end
+-- Init (Auto-load modules)
+obj:loadModules()
 
 return obj

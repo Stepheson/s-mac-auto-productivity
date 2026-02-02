@@ -5,6 +5,77 @@ obj.author = "Stepheson Alves"
 obj.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEIC)."
 obj.parameter_schema = {}
 
+-- Function to return menu items (Schema)
+function obj.getMenuItems(options)
+    local current = obj.getCurrentFormat()
+
+    -- Define the radio items (no manual visual indicators needed)ß
+    local formatItems = {
+        {
+            label = "PNG Image",
+            description = "Lossless quality (Best for text/UI)",
+            value = "png",
+            action = function() obj.setFormat("png") end
+        },
+        {
+            label = "JPG Image",
+            description = "Compressed (Best for photos/sharing)",
+            value = "jpg",
+            action = function() obj.setFormat("jpg") end
+        },
+        {
+            label = "HEIC Image",
+            description = "Modern efficient compression (macOS Default)",
+            value = "heic",
+            action = function() obj.setFormat("heic") end
+        },
+        {
+            label = "PDF Document",
+            description = "Portable Document Format",
+            value = "pdf",
+            action = function() obj.setFormat("pdf") end
+        },
+        {
+            label = "TIFF Image",
+            description = "High quality lossless (Large file size)",
+            value = "tiff",
+            action = function() obj.setFormat("tiff") end
+        },
+        {
+            label = "GIF Image",
+            description = "Graphics Interchange Format",
+            value = "gif",
+            action = function() obj.setFormat("gif") end
+        }
+    }
+
+    local label = "Screenshot Format"
+    local knownFormats = { png = true, jpg = true, heic = true, pdf = true, tiff = true, gif = true }
+    if knownFormats[current] then
+        label = label .. ": " .. current:upper()
+    end
+
+    -- Return a Submenu containing a RadioGroup
+    return {
+        {
+            type = "submenu",
+            label = label,
+            description = "Change system screenshot file type",
+            items = {
+                {
+                    type = "radioGroup",
+                    currentValue = current,
+                    items = formatItems
+                }
+            }
+        }
+    }
+end
+
+--------------------------------------------------------------------------------
+-- Functions
+--------------------------------------------------------------------------------
+
 -- Internal chooser reference to prevent GC
 obj.formatChooser = nil
 
@@ -53,96 +124,6 @@ function obj.getCurrentFormat()
         return output:gsub("%s+", "") -- Trim whitespace
     end
     return "png"                      -- Default assumption if missing
-end
-
--- Submenu selection handler
-function obj.onFormatChoice(choice)
-    if not choice then return end
-
-    -- Generic handling based on value
-    if choice.value then
-        obj.setFormat(choice.value)
-    end
-end
-
--- Function to open the format selection submenu
-function obj.showFormatMenu()
-    if not obj.formatChooser then
-        obj.formatChooser = hs.chooser.new(obj.onFormatChoice)
-        obj.formatChooser:placeholderText("Select Screenshot Format")
-    end
-
-    local current = obj.getCurrentFormat()
-
-    local choices = {
-        {
-            text = "PNG Image",
-            subText = "Lossless quality (Best for text/UI)",
-            value = "png"
-        },
-        {
-            text = "JPEG Image",
-            subText = "Compressed (Best for photos/sharing)",
-            value = "jpg"
-        },
-        {
-            text = "HEIC Image",
-            subText = "Modern efficient compression (macOS Default)",
-            value = "heic"
-        },
-        {
-            text = "PDF Document",
-            subText = "Portable Document Format",
-            value = "pdf"
-        },
-        {
-            text = "TIFF Image",
-            subText = "High quality lossless (Large file size)",
-            value = "tiff"
-        },
-        {
-            text = "GIF Image",
-            subText = "Graphics Interchange Format",
-            value = "gif"
-        }
-    }
-
-    -- Mark current with a visual indicator
-    for _, item in ipairs(choices) do
-        if item.value == current then
-            item.text = item.text .. " (Current)"
-        end
-        item.valid = true
-    end
-
-    obj.formatChooser:choices(choices)
-    obj.formatChooser:show()
-end
-
--- Function to return menu items
-function obj.getMenuItems(options)
-    local current = obj.getCurrentFormat()
-    local label = "Screenshot Format"
-
-    -- List of known formats to display
-    local knownFormats = { png = true, jpg = true, heic = true, pdf = true, tiff = true, gif = true }
-
-    if knownFormats[current] then
-        label = label .. " (Current: " .. current:upper() .. ")"
-    else
-        -- Fallback for unknown or empty format
-        if current and current ~= "" then
-            label = label .. " (Current: " .. current .. ")"
-        end
-    end
-
-    return {
-        {
-            text = label,
-            subText = "Change system screenshot file type...",
-            func = obj.showFormatMenu
-        }
-    }
 end
 
 return obj

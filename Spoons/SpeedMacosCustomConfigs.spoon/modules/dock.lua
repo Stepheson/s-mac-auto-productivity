@@ -5,6 +5,35 @@ obj.author = "Stepheson Alves"
 obj.description = "Manages Dock auto-hide settings."
 obj.parameter_schema = {}
 
+-- Function to return menu items (Schema)
+function obj.getMenuItems()
+    local state = obj.getDockAutoHideState()
+    local isEnabled = (state == "1" or state == "true")
+
+    return {
+        {
+            type = "toggle",
+            label = "Dock Auto-Hide",
+            description = "Toggle Dock auto-hide setting",
+            currentIndex = isEnabled and 2 or 1, -- 1=Disabled, 2=Enabled
+            states = {
+                {
+                    label = "Disabled",
+                    action = obj.toggleDockAutoHide
+                },
+                {
+                    label = "Enabled",
+                    action = obj.toggleDockAutoHide
+                }
+            }
+        }
+    }
+end
+
+--------------------------------------------------------------------------------
+-- Functions
+--------------------------------------------------------------------------------
+
 -- Function to toggle Dock auto-hide
 function obj.toggleDockAutoHide()
     local output, status = hs.execute("defaults read com.apple.dock autohide")
@@ -28,23 +57,6 @@ function obj.getDockAutoHideState()
         return output:gsub("%s+", "") -- Trim whitespace
     end
     return "0"
-end
-
--- Function to return menu items
-function obj.getMenuItems()
-    local state = obj.getDockAutoHideState()
-    local isEnabled = (state == "1" or state == "true")
-
-    local prefix = isEnabled and "(*) " or "( ) "
-    local actionText = isEnabled and "Disable Dock Auto-Hide" or "Enable Dock Auto-Hide"
-
-    return {
-        {
-            text = prefix .. "Toggle Dock Auto-Hide",
-            subText = "Current: " .. (isEnabled and "Enabled" or "Disabled"),
-            func = obj.toggleDockAutoHide
-        }
-    }
 end
 
 return obj
