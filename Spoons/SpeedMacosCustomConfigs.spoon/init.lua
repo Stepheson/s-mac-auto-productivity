@@ -36,11 +36,37 @@ local finder = loadModule("finder")
 local screenshot = loadModule("screenshot")
 local dock = loadModule("dock")
 
+-- Helper to parse parameters: ["finder:hiddenfiles:forced"] -> { finder = { hiddenfiles = "forced" } }
+local function parseParams(params)
+    local options = {}
+    if not params or type(params) ~= "table" then return options end
+
+    for _, param in ipairs(params) do
+        -- Structure: module:command:mode
+        local parts = {}
+        for part in string.gmatch(param, "[^:]+") do
+            table.insert(parts, part)
+        end
+
+        if #parts >= 3 then
+            local modName = parts[1]
+            local cmdName = parts[2]
+            local mode = parts[3]
+
+            if not options[modName] then options[modName] = {} end
+            options[modName][cmdName] = mode
+        end
+    end
+    return options
+end
+
 -- Function to aggregate menu items from all modules
-function obj:buildMenu()
+function obj:buildMenu(params)
     print("SpeedMacosCustomConfigs: Building menu...")
     self.menuItems = {}
     self.menuActions = {} -- Store functions here
+
+    local options = parseParams(params)
 
     -- Helper to add items
     local function addItems(items)
@@ -63,16 +89,16 @@ function obj:buildMenu()
         end
     end
 
-    -- Add items from modules
+    -- Add items from modules, passing relevant options
     if finder then
-        addItems(finder.getMenuItems())
+        addItems(finder.getMenuItems(options.finder))
     else
         table.insert(self.menuItems, { text = "Error: Finder module not loaded", subText = "Check console for details" })
         table.insert(self.menuActions, function() end)
     end
 
     if screenshot then
-        addItems(screenshot.getMenuItems())
+        addItems(screenshot.getMenuItems(options.screenshot))
     else
         table.insert(self.menuItems,
             { text = "Error: Screenshot module not loaded", subText = "Check console for details" })
@@ -80,7 +106,7 @@ function obj:buildMenu()
     end
 
     if dock then
-        addItems(dock.getMenuItems())
+        addItems(dock.getMenuItems(options.dock))
     else
         table.insert(self.menuItems, { text = "Error: Dock module not loaded", subText = "Check console for details" })
         table.insert(self.menuActions, function() end)
@@ -105,12 +131,12 @@ function obj:onChoice(choice)
 end
 
 -- Function to show the menu
-function obj:showMenu()
+function obj:showMenu(params)
     if not self.chooser then
         self.chooser = hs.chooser.new(function(choice) self:onChoice(choice) end)
     end
 
-    self:buildMenu()
+    self:buildMenu(params)
     self.chooser:choices(self.menuItems)
     self.chooser:show()
 end

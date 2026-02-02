@@ -66,7 +66,13 @@ end))
 
 -- SpeedMacosCustomConfigs
 table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "7", function()
-  spoon.SpeedMacosCustomConfigs:showMenu()
+  -- Params structure: [MODULE]:[COMMAND]:[MODE]
+  -- Example: "finder:hiddenfiles:forced" (Use 'defaults' + 'killall')
+  -- Default: Native shortcuts (no params needed)
+  local params = {
+    -- "finder:hiddenfiles:forced"
+  }
+  spoon.SpeedMacosCustomConfigs:showMenu(params)
 end))
 
 -- Debug Tools

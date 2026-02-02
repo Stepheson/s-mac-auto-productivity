@@ -1,46 +1,62 @@
 local obj = {}
 
--- Function to show hidden files
-function obj.showHiddenFiles()
-    hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.finder", "AppleShowAllFiles", "-bool", "true" }):start()
-    hs.alert.show("Finder: Showing Hidden Files")
-    hs.task.new("/usr/bin/killall", nil, { "Finder" }):start()
+-- Function to toggle Hidden Files using Native Shortcut (No Kill) - Preferred
+function obj.toggleHiddenFiles()
+    local finder = hs.appfinder.appFromName("Finder")
+    if finder then
+        -- Use the native shortcut: Cmd + Shift + .
+        -- This toggles visibility instantly without killing Finder
+        hs.eventtap.keyStroke({ "cmd", "shift" }, ".", finder)
+        hs.alert.show("Finder: Toggled Hidden Files (Native)")
+    else
+        hs.alert.show("Finder is not running")
+    end
 end
 
--- Function to hide hidden files
--- Function to toggle Hidden Files
-function obj.toggleHiddenFiles()
-    local currentState = obj.getHiddenFilesState()
-    local newState = (currentState == "1" or currentState == "true") and "false" or "true"
+-- Function to toggle Hidden Files using Forced Method (Defaults + Killall) - Fallback
+function obj.toggleHiddenFilesForced()
+    -- We can read the state just to flip it, or just blindly flip based on assumptions?
+    -- Better to read the state to flip it correctly.
+    local output, status = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
+    local currentState = "false"
+    if output then
+        local cleanOutput = output:gsub("%s+", ""):lower()
+        if (cleanOutput == "1" or cleanOutput == "true" or cleanOutput == "yes" or cleanOutput == "on") then
+            currentState = "true"
+        end
+    end
+
+    local newState = (currentState == "true") and "false" or "true"
 
     hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.finder", "AppleShowAllFiles", "-bool", newState }):start()
 
-    local msg = (newState == "true") and "Finder: Hidden Files Shown" or "Finder: Hidden Files Hidden"
+    local msg = (newState == "true") and "Finder: Hidden Files Shown (Forced)" or "Finder: Hidden Files Hidden (Forced)"
     hs.alert.show(msg)
 
     hs.task.new("/usr/bin/killall", nil, { "Finder" }):start()
-end
 
--- Function to get hidden files state
-function obj.getHiddenFilesState()
-    local output, status = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
-    if output then
-        return output:gsub("%s+", "") -- Trim whitespace
-    end
-    return "0"                        -- Default to hidden (false/0)
+    print("[Finder] Toggled hidden files (Forced mode)")
 end
 
 -- Function to return menu items
-function obj.getMenuItems()
-    local hiddenState = obj.getHiddenFilesState()
-    local isHiddenShown = (hiddenState == "1" or hiddenState == "true")
-    local hiddenPrefix = isHiddenShown and "(*) " or "( ) "
+function obj.getMenuItems(options)
+    -- Options is a table, e.g. { hiddenfiles = "forced" } handled by the Spoon
+
+    options = options or {}
+    local mode = options.hiddenfiles or "native"
+    local funcToCall = obj.toggleHiddenFiles
+    local menuText = "Toggle Hidden Files"
+
+    if mode == "forced" then
+        funcToCall = obj.toggleHiddenFilesForced
+        menuText = menuText .. " (Forced)"
+    end
 
     return {
         {
-            text = hiddenPrefix .. "Toggle Hidden Files",
-            subText = "Current: " .. (isHiddenShown and "Shown" or "Hidden"),
-            func = obj.toggleHiddenFiles
+            text = menuText,
+            subText = "Toggle visibility of hidden files", -- Static text, no status
+            func = funcToCall
         }
     }
 end
