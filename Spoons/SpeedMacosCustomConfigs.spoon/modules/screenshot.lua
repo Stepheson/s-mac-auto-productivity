@@ -1,4 +1,9 @@
 local obj = {}
+obj.name = "Screenshot"
+obj.version = "1.1"
+obj.author = "Stepheson Alves"
+obj.description = "Manages global screenshot format (PNG/JPG)."
+obj.parameter_schema = {}
 
 -- Function to set screenshot format to PNG
 function obj.setFormatPNG()

@@ -1,4 +1,9 @@
 local obj = {}
+obj.name = "Finder"
+obj.version = "1.1"
+obj.author = "Stepheson Alves"
+obj.description = "Manages Finder visibility and hidden files."
+obj.parameter_schema = { "native", "forced" }
 
 -- Function to toggle Hidden Files using Native Shortcut (No Kill) - Preferred
 function obj.toggleHiddenFiles()

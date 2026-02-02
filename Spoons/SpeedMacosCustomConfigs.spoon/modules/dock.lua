@@ -1,4 +1,9 @@
 local obj = {}
+obj.name = "Dock"
+obj.version = "1.1"
+obj.author = "Stepheson Alves"
+obj.description = "Manages Dock auto-hide settings."
+obj.parameter_schema = {}
 
 -- Function to toggle Dock auto-hide
 function obj.toggleDockAutoHide()
