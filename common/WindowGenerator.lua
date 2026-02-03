@@ -1,0 +1,204 @@
+-- common/WindowGenerator.lua
+-- Centralized Window/Menu Generator using hs.chooser
+-- Acts as a hub for Spoons to register their commands.
+
+local obj = {}
+obj.__index = obj
+
+-- Metadata
+obj.name = "WindowGenerator"
+obj.version = "1.1"
+obj.author = "Stepheson Alves"
+
+-- Storage
+obj.registeredSpoons = {} -- { [name] = { title = "...", generator = func } }
+obj.chooser = nil
+obj.historyStack = {}     -- For breadcrumb navigation
+obj.activeMap = {}        -- Maps choice index (or uuid) to actual item logic
+
+-- Helper: Process items for chooser (Sanitize for LuaSkin)
+local function processItems(items)
+    obj.activeMap = {} -- Clear previous map
+    local choices = {}
+
+    for i, item in ipairs(items) do
+        -- Store the full logic item in our internal map using index as key
+        -- We purposely do NOT put 'action' or 'originalItem' in the choice table sent to hs.chooser
+        -- because passing Lua functions/tables to the C-side bridge causes crashes (LuaSkin errors).
+        obj.activeMap[i] = item
+
+        local choice = {
+            text = item.label or item.text or "Unknown",
+            subText = item.description or item.subText or "",
+            image = item.image,
+            valid = true,
+            uuid = tostring(i), -- Pass ID as string to be safe
+        }
+
+        -- Special handling for "Char" grid simulation (Icon + Text)
+        if item.char then
+            choice.text = item.char .. "   " .. (item.label or "")
+            if not item.description then
+                choice.subText = "Copy to clipboard"
+            end
+        end
+
+        table.insert(choices, choice)
+    end
+    return choices
+end
+
+-- Callback for selection
+local function onChoice(choice)
+    if not choice then return end -- Cancelled
+
+    local index = tonumber(choice.uuid)
+    local item = obj.activeMap[index]
+
+    if not item then
+        -- This might happen if 'isBack' logic didn't use same map structure.
+        -- If it's a Back button, we might have injected it separately?
+        -- Let's check if it's our transient Back item logic handling?
+        -- No, let's look at how we insert Back.
+
+        print("WindowGenerator: Error - No item found for index " .. tostring(index))
+        return
+    end
+
+    -- Handle Back Button
+    if item.isBack then
+        local prev = table.remove(obj.historyStack)
+        if prev then
+            obj:showMenu(prev.items, prev.placeholder)
+        else
+            obj:showMain()
+        end
+        return
+    end
+
+    -- Execute Action
+    if item.action then
+        item.action()
+        return -- Close chooser (default)
+    end
+
+    -- Handle Submenu (Recursive)
+    if item.items or item.menu then
+        local subItems = item.items or item.menu
+        -- Push to history
+        table.insert(obj.historyStack, {
+            items = obj.currentItems,
+            placeholder = obj.currentPlaceholder
+        })
+        obj:showMenu(subItems, item.label)
+    end
+end
+
+--- Register a Spoon's menu generator
+--- @param name string Unique ID for the spoon (e.g., "QuickCharAccess")
+--- @param title string Human readable title
+--- @param generatorFunc function Function that returns a list of items
+--- @param config table|nil Configuration options (e.g., { rootItems = true })
+function obj:register(name, title, generatorFunc, config)
+    obj.registeredSpoons[name] = {
+        title = title,
+        generator = generatorFunc,
+        config = config or {}
+    }
+end
+
+--- Internal: Show a specific list of items
+function obj:showMenu(items, placeholder)
+    if not obj.chooser then
+        obj.chooser = hs.chooser.new(onChoice)
+        obj.chooser:bgDark(true) -- Dark mode preference
+        obj.chooser:width(25)    -- Configurable width
+    end
+
+    -- Add Back button if in history
+    local hasBack = (#obj.historyStack > 0)
+    local itemsToProcess = {}
+
+    if hasBack then
+        table.insert(itemsToProcess, {
+            text = "⬅ Back",
+            subText = "Return to previous menu",
+            isBack = true
+        })
+    end
+
+    for _, v in ipairs(items) do
+        table.insert(itemsToProcess, v)
+    end
+
+    local displayItems = processItems(itemsToProcess)
+
+    obj.currentItems = items -- Store raw items for history (breadcrumbs)
+    obj.currentPlaceholder = placeholder
+
+    obj.chooser:choices(displayItems)
+    obj.chooser:placeholderText(placeholder or "Select Option")
+    obj.chooser:show()
+end
+
+--- Show the Main Menu (Aggregation of all Spoons)
+function obj:showMain()
+    obj.historyStack = {} -- Reset history
+    local mainItems = {}
+
+    for name, data in pairs(obj.registeredSpoons) do
+        if data.config.rootItems then
+            -- Flatten: Execute generator and add items directly
+            local items = data.generator()
+            if items then
+                for _, item in ipairs(items) do
+                    -- Optional: Prefix text with Title if confused? No, cleanest is just adding.
+                    table.insert(mainItems, item)
+                end
+            end
+        else
+            -- Nested: Add single item to open submenu
+            table.insert(mainItems, {
+                text = data.title,
+                subText = "Open " .. data.title .. " menu",
+                action = function()
+                    -- Generate fresh items on click, calling generator without params (Main Menu context)
+                    local items = data.generator()
+
+                    table.insert(obj.historyStack, {
+                        items = mainItems,
+                        placeholder = "Main Menu"
+                    })
+                    obj:showMenu(items, data.title)
+                end,
+            })
+        end
+    end
+
+    -- Sort by text -- Removed to respect provider order
+    -- table.sort(mainItems, function(a, b) return a.text < b.text end)
+
+    obj:showMenu(mainItems, "Main Menu")
+end
+
+--- Show a specific Spoon's menu directly
+--- @param spoonName string|nil Name of registered spoon. If nil, shows Main Menu.
+--- @param params table|nil Optional parameters to pass to the generator function
+function obj:show(spoonName, params)
+    if not spoonName then
+        obj:showMain()
+        return
+    end
+
+    local data = obj.registeredSpoons[spoonName]
+    if data then
+        obj.historyStack = {} -- Reset history
+        -- Pass params to generator if supported
+        local items = data.generator(params)
+        obj:showMenu(items, data.title)
+    else
+        hs.alert.show("WindowGenerator: Spoon '" .. spoonName .. "' not found.")
+    end
+end
+
+return obj

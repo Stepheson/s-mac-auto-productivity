@@ -1,13 +1,13 @@
-local obj = {}
-obj.name = "Dock"
-obj.version = "1.1"
-obj.author = "Stepheson Alves"
-obj.description = "Manages Dock auto-hide settings."
-obj.parameter_schema = {}
+local module = {}
+module.name = "Dock"
+module.version = "1.1"
+module.author = "Stepheson Alves"
+module.description = "Manages Dock auto-hide settings."
+module.parameter_schema = {}
 
 -- Function to return menu items (Schema)
-function obj.getMenuItems()
-    local state = obj.getDockAutoHideState()
+function module.getMenuItems()
+    local state = module.getDockAutoHideState()
     local isEnabled = (state == "1" or state == "true")
 
     return {
@@ -19,11 +19,11 @@ function obj.getMenuItems()
             states = {
                 {
                     label = "Disabled",
-                    action = obj.toggleDockAutoHide
+                    action = module.toggleDockAutoHide
                 },
                 {
                     label = "Enabled",
-                    action = obj.toggleDockAutoHide
+                    action = module.toggleDockAutoHide
                 }
             }
         }
@@ -35,7 +35,7 @@ end
 --------------------------------------------------------------------------------
 
 -- Function to toggle Dock auto-hide
-function obj.toggleDockAutoHide()
+function module.toggleDockAutoHide()
     local output, status = hs.execute("defaults read com.apple.dock autohide")
     local currentState = (output and output:gsub("%s+", "") == "1")
 
@@ -43,15 +43,17 @@ function obj.toggleDockAutoHide()
     local newStateStr = newState and "true" or "false"
 
     hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.dock", "autohide", "-bool", newStateStr }):start()
+    print("Dock: Executed defaults write autohide " .. newStateStr)
 
     local msg = newState and "Dock: Auto-Hide Enabled" or "Dock: Auto-Hide Disabled"
     hs.alert.show(msg)
 
     hs.task.new("/usr/bin/killall", nil, { "Dock" }):start()
+    print("Dock: Executed killall Dock")
 end
 
 -- Function to get current state
-function obj.getDockAutoHideState()
+function module.getDockAutoHideState()
     local output, status = hs.execute("defaults read com.apple.dock autohide")
     if output then
         return output:gsub("%s+", "") -- Trim whitespace
@@ -59,4 +61,4 @@ function obj.getDockAutoHideState()
     return "0"
 end
 
-return obj
+return module

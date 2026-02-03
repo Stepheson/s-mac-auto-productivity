@@ -1,0 +1,39 @@
+{
+    "menu_order": [ "quickchar", "finder", "screenshot", "dock" ],
+    "quickchar": [
+        { "char": "", "label": "Apple Logo" },
+        { "char": "⌘", "label": "Command" },
+        { "char": "⌥", "label": "Option" },
+        { "char": "⌃", "label": "Control" },
+        { "char": "⇧", "label": "Shift" },
+        { "char": "⇪", "label": "Caps Lock" },
+        { "char": "↩", "label": "Return" },
+        { "char": "⌫", "label": "Delete" },
+        { "char": "⎋", "label": "Escape" },
+        { "char": "←", "label": "Left Arrow" },
+        { "char": "→", "label": "Right Arrow" },
+        { "char": "↑", "label": "Up Arrow" },
+        { "char": "↓", "label": "Down Arrow" },
+        { "char": "©", "label": "Copyright" },
+        { "char": "®", "label": "Registered" },
+        { "char": "™", "label": "Trademark" },
+        { "char": "€", "label": "Euro" },
+        { "char": "£", "label": "Pound" },
+        { "char": "¥", "label": "Yen" },
+        { "char": "•", "label": "Bullet" },
+        { "char": "∞", "label": "Infinity" },
+        { "char": "≠", "label": "Not Equal" },
+        { "char": "≤", "label": "Less or Equal" },
+        { "char": "≥", "label": "Greater or Equal" },
+        { "char": "±", "label": "Plus Minus" },
+        { "char": "✅", "label": "Checkmark" },
+        { "char": "{ }", "label": "Open/Closed bracket" },
+        { "char": "[ ]", "label": "Open/Closed square bracket" },
+        { "char": "\" \"", "label": "Double quote" },
+        { "char": "' '", "label": "Single quote" },
+        { "char": "```", "label": "Backquote" }
+    ],
+    "finder": {
+        "hiddenfiles": "native"
+    }
+}

@@ -1,13 +1,13 @@
-local obj = {}
-obj.name = "Screenshot"
-obj.version = "1.2"
-obj.author = "Stepheson Alves"
-obj.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEIC)."
-obj.parameter_schema = {}
+local module = {}
+module.name = "Screenshot"
+module.version = "1.2"
+module.author = "Stepheson Alves"
+module.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEIC)."
+module.parameter_schema = {}
 
 -- Function to return menu items (Schema)
-function obj.getMenuItems(options)
-    local current = obj.getCurrentFormat()
+function module.getMenuItems(options)
+    local current = module.getCurrentFormat()
 
     -- Define the radio items (no manual visual indicators needed)ß
     local formatItems = {
@@ -15,37 +15,37 @@ function obj.getMenuItems(options)
             label = "PNG Image",
             description = "Lossless quality (Best for text/UI)",
             value = "png",
-            action = function() obj.setFormat("png") end
+            action = function() module.setFormat("png") end
         },
         {
             label = "JPG Image",
             description = "Compressed (Best for photos/sharing)",
             value = "jpg",
-            action = function() obj.setFormat("jpg") end
+            action = function() module.setFormat("jpg") end
         },
         {
             label = "HEIC Image",
             description = "Modern efficient compression (macOS Default)",
             value = "heic",
-            action = function() obj.setFormat("heic") end
+            action = function() module.setFormat("heic") end
         },
         {
             label = "PDF Document",
             description = "Portable Document Format",
             value = "pdf",
-            action = function() obj.setFormat("pdf") end
+            action = function() module.setFormat("pdf") end
         },
         {
             label = "TIFF Image",
             description = "High quality lossless (Large file size)",
             value = "tiff",
-            action = function() obj.setFormat("tiff") end
+            action = function() module.setFormat("tiff") end
         },
         {
             label = "GIF Image",
             description = "Graphics Interchange Format",
             value = "gif",
-            action = function() obj.setFormat("gif") end
+            action = function() module.setFormat("gif") end
         }
     }
 
@@ -55,19 +55,15 @@ function obj.getMenuItems(options)
         label = label .. ": " .. current:upper()
     end
 
-    -- Return a Submenu containing a RadioGroup
+    -- Return a Submenu Item that contains the list of formats
     return {
         {
-            type = "submenu",
+            type = "submenu", -- Handled by EasyLoadModules compatibility layer if needed, or WindowGenerator
+            -- WindowGenerator expects 'menu' or 'items' for submenus.
+            -- EasyLoadModules maps 'label' -> 'text'.
             label = label,
             description = "Change system screenshot file type",
-            items = {
-                {
-                    type = "radioGroup",
-                    currentValue = current,
-                    items = formatItems
-                }
-            }
+            menu = formatItems -- Directly pass the list of items as the submenu content
         }
     }
 end
@@ -77,10 +73,10 @@ end
 --------------------------------------------------------------------------------
 
 -- Internal chooser reference to prevent GC
-obj.formatChooser = nil
+module.formatChooser = nil
 
 -- Generic function to set screenshot format
-function obj.setFormat(formatType)
+function module.setFormat(formatType)
     local typeUpper = formatType:upper()
     hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.screencapture", "type", formatType }):start()
     hs.alert.show("Screenshot: Format set to " .. typeUpper)
@@ -88,37 +84,37 @@ function obj.setFormat(formatType)
 end
 
 -- Function to set screenshot format to PNG
-function obj.setFormatPNG()
-    obj.setFormat("png")
+function module.setFormatPNG()
+    module.setFormat("png")
 end
 
 -- Function to set screenshot format to JPG
-function obj.setFormatJPG()
-    obj.setFormat("jpg")
+function module.setFormatJPG()
+    module.setFormat("jpg")
 end
 
 -- Function to set screenshot format to TIFF
-function obj.setFormatTIFF()
-    obj.setFormat("tiff")
+function module.setFormatTIFF()
+    module.setFormat("tiff")
 end
 
 -- Function to set screenshot format to PDF
-function obj.setFormatPDF()
-    obj.setFormat("pdf")
+function module.setFormatPDF()
+    module.setFormat("pdf")
 end
 
 -- Function to set screenshot format to GIF
-function obj.setFormatGIF()
-    obj.setFormat("gif")
+function module.setFormatGIF()
+    module.setFormat("gif")
 end
 
 -- Function to set screenshot format to HEIC
-function obj.setFormatHEIC()
-    obj.setFormat("heic")
+function module.setFormatHEIC()
+    module.setFormat("heic")
 end
 
 -- Function to get current format
-function obj.getCurrentFormat()
+function module.getCurrentFormat()
     local output = hs.execute("defaults read com.apple.screencapture type")
     if output then
         return output:gsub("%s+", "") -- Trim whitespace
@@ -126,4 +122,4 @@ function obj.getCurrentFormat()
     return "png"                      -- Default assumption if missing
 end
 
-return obj
+return module

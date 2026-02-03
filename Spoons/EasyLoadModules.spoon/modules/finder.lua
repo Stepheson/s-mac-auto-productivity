@@ -1,21 +1,21 @@
-local obj = {}
-obj.name = "Finder"
-obj.version = "1.1"
-obj.author = "Stepheson Alves"
-obj.description = "Manages Finder visibility and hidden files."
-obj.parameter_schema = { "native", "forced" }
+local module = {}
+module.name = "Finder"
+module.version = "1.1"
+module.author = "Stepheson Alves"
+module.description = "Manages Finder visibility and hidden files."
+module.parameter_schema = { "native", "forced" }
 
 -- Function to return menu items (Schema)
-function obj.getMenuItems(options)
+function module.getMenuItems(options)
     options = options or {}
     local mode = options.hiddenfiles or "native"
 
-    local funcToggle = obj.toggleHiddenFiles
+    local funcToggle = module.toggleHiddenFiles
     if mode == "forced" then
-        funcToggle = obj.toggleHiddenFilesForced
+        funcToggle = module.toggleHiddenFilesForced
     end
 
-    local isShown = obj.getHiddenFilesState()
+    local isShown = module.getHiddenFilesState()
 
     return {
         {
@@ -42,7 +42,7 @@ end
 --------------------------------------------------------------------------------
 ---
 -- Function to toggle Hidden Files using Native Shortcut (No Kill) - Preferred
-function obj.toggleHiddenFiles()
+function module.toggleHiddenFiles()
     local finder = hs.appfinder.appFromName("Finder")
     if finder then
         -- Use the native shortcut: Cmd + Shift + .
@@ -55,7 +55,7 @@ function obj.toggleHiddenFiles()
 end
 
 -- Function to toggle Hidden Files using Forced Method (Defaults + Killall) - Fallback
-function obj.toggleHiddenFilesForced()
+function module.toggleHiddenFilesForced()
     -- We can read the state just to flip it, or just blindly flip based on assumptions?
     -- Better to read the state to flip it correctly.
     local output, status = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
@@ -80,7 +80,7 @@ function obj.toggleHiddenFilesForced()
 end
 
 -- Helper to get current hidden files state
-function obj.getHiddenFilesState()
+function module.getHiddenFilesState()
     local output = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
     if output then
         local clean = output:gsub("%s+", ""):lower()
@@ -91,4 +91,4 @@ function obj.getHiddenFilesState()
     return false
 end
 
-return obj
+return module

@@ -15,7 +15,7 @@ print("===========================================")
 hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
 hs.loadSpoon("AppCycler")
-hs.loadSpoon("SpeedMacosCustomConfigs")
+hs.loadSpoon("EasyLoadModules")
 
 -- ========== HOTKEYS ==========
 
@@ -23,6 +23,8 @@ local hotkeys = {}
 
 -- ========== SIDE HOTKEY MODULE ==========
 local SideHotkey = require("common.SideHotkey")
+local WindowGenerator = require("common.WindowGenerator")
+
 
 -- 1. Master Switch (Always Active)
 -- These are NOT added to the 'hotkeys' list, so AutomationControl doesn't disable them.
@@ -64,15 +66,8 @@ table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "tab", function()
   spoon.AppCycler:cycle(0)
 end))
 
--- SpeedMacosCustomConfigs
-table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "7", function()
-  -- Params structure: [MODULE]:[COMMAND]:[MODE]
-  -- Example: "finder:hiddenfiles:forced" (Use 'defaults' + 'killall')
-  -- Default: Native shortcuts (no params needed)
-  local params = {
-    -- "finder:hiddenfiles:forced"
-  }
-  spoon.SpeedMacosCustomConfigs:showMenu(params)
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "q", function()
+  WindowGenerator:show()
 end))
 
 -- Debug Tools
@@ -92,7 +87,7 @@ hs.hotkey.bind({ "cmd" }, "h", function() end)
 if spoon.AutomationControl then
   spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
   spoon.AutomationControl:registerSpoon(spoon.AppCycler)
-  spoon.AutomationControl:registerSpoon(spoon.SpeedMacosCustomConfigs)
+  spoon.AutomationControl:registerSpoon(spoon.EasyLoadModules)
   spoon.AutomationControl:registerHotkeys(hotkeys)
   spoon.AutomationControl:start()
 else
