@@ -1,5 +1,5 @@
 {
-    "menu_order": [ "quickchar", "finder", "screenshot", "dock" ],
+    "menu_order": [ "quickchar", "create file", "finder", "screenshot", "dock" ],
     "quickchar": [
         { "char": "", "label": "Apple Logo" },
         { "char": "⌘", "label": "Command" },
