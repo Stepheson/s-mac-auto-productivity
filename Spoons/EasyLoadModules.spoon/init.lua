@@ -3,6 +3,8 @@
 --- A Spoon to manage modules and centralized window generation.
 --- It acts as a "Plugin Hub" for small automation scripts.
 
+-- Font of icon create_file.png: https://www.pngwing.com/
+
 local obj = {}
 obj.__index = obj
 
@@ -90,6 +92,7 @@ function obj:loadModules()
                 local success, module = pcall(dofile, loadPath)
                 if success and type(module) == "table" and module.name then
                     -- Store by internal name
+                    module.spoonPath = scriptPath
                     obj.availableModules[module.name] = module
                     print("EasyLoadModules: Registered module '" .. module.name .. "'")
                 end

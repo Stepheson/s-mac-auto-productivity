@@ -4,6 +4,7 @@ module.version = "1.1"
 module.author = "Stepheson Alves"
 module.description = "Manages Finder visibility and hidden files."
 module.parameter_schema = { "native", "forced" }
+local systemUtils = require("common.systemUtils")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)
@@ -74,7 +75,7 @@ function module.toggleHiddenFilesForced()
     local msg = (newState == "true") and "Finder: Hidden Files Shown (Forced)" or "Finder: Hidden Files Hidden (Forced)"
     hs.alert.show(msg)
 
-    hs.task.new("/usr/bin/killall", nil, { "Finder" }):start()
+    systemUtils.killApp("Finder")
 
     print("[Finder] Toggled hidden files (Forced mode)")
 end

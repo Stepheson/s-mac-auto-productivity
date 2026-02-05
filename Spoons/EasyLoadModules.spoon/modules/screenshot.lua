@@ -5,11 +5,13 @@ module.author = "Stepheson Alves"
 module.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEIC)."
 module.parameter_schema = {}
 
+local systemUtils = require("common.systemUtils")
+
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)
     local current = module.getCurrentFormat()
 
-    -- Define the radio items (no manual visual indicators needed)ß
+    -- Define the radio items (no manual visual indicators needed)
     local formatItems = {
         {
             label = "PNG Image",
@@ -80,7 +82,7 @@ function module.setFormat(formatType)
     local typeUpper = formatType:upper()
     hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.screencapture", "type", formatType }):start()
     hs.alert.show("Screenshot: Format set to " .. typeUpper)
-    hs.task.new("/usr/bin/killall", nil, { "SystemUIServer" }):start()
+    systemUtils.killApp("SystemUIServer")
 end
 
 -- Function to set screenshot format to PNG

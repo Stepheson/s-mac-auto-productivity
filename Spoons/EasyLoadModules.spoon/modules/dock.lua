@@ -5,6 +5,8 @@ module.author = "Stepheson Alves"
 module.description = "Manages Dock auto-hide settings."
 module.parameter_schema = {}
 
+local systemUtils = require("common.systemUtils")
+
 -- Function to return menu items (Schema)
 function module.getMenuItems()
     local state = module.getDockAutoHideState()
@@ -48,7 +50,7 @@ function module.toggleDockAutoHide()
     local msg = newState and "Dock: Auto-Hide Enabled" or "Dock: Auto-Hide Disabled"
     hs.alert.show(msg)
 
-    hs.task.new("/usr/bin/killall", nil, { "Dock" }):start()
+    systemUtils.killApp("Dock")
     print("Dock: Executed killall Dock")
 end
 

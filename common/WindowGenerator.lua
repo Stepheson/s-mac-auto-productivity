@@ -94,6 +94,43 @@ local function onChoice(choice)
     end
 end
 
+--- Show a native input box (AppleScript dialog) with optional custom icon
+-- @param title string The window title
+-- @param message string The message inside the dialog
+-- @param defaultText string Default input text
+-- @param buttonText string The confirm button label
+-- @param iconPath string (optional) Absolute path to a custom icon (file reference)
+-- @return string|nil The returned text if confirmed, or nil if cancelled
+function obj:showInputBox(title, message, defaultText, buttonText, iconPath)
+    local iconClause = ""
+    if iconPath and iconPath ~= "" then
+        iconClause = 'with icon (POSIX file "' .. iconPath .. '")'
+    end
+
+    local script = string.format([[
+        try
+            tell application "System Events"
+                activate
+                display dialog "%s" default answer "%s" with title "%s" buttons {"Cancel", "%s"} default button "%s" %s
+            end tell
+            return {button returned of result, text returned of result}
+        on error
+            return {"Cancel", ""}
+        end try
+    ]], message, defaultText, title, buttonText, buttonText, iconClause)
+
+    local success, result = hs.osascript.applescript(script)
+
+    if success and type(result) == "table" and #result == 2 then
+        local button = result[1]
+        local text = result[2]
+        if button == buttonText then
+            return text
+        end
+    end
+    return nil
+end
+
 --- Register a Spoon's menu generator
 --- @param name string Unique ID for the spoon (e.g., "QuickCharAccess")
 --- @param title string Human readable title

@@ -1,15 +1,22 @@
 local module = {}
 module.name = "Create File"
-module.version = "1.0"
+module.version = "1.1"
 module.author = "Antigravity"
 module.description = "Creates a new file in the current Finder directory."
 
+local finderUtils = require("common.finderUtils")
+local windowGenerator = require("common.WindowGenerator")
+
 -- Function to return menu items
 function module.getMenuItems(options)
+    local iconPath = (module.spoonPath or "") .. "images/create_file.png"
+    local icon = hs.image.imageFromPath(iconPath)
+
     return {
         {
             text = "Create File...",
             subText = "Create a new file in current folder",
+            image = icon,
             action = function()
                 module.promptAndCreate()
             end
@@ -17,43 +24,25 @@ function module.getMenuItems(options)
     }
 end
 
--- Function to get the current Finder path using AppleScript
-function module.getFinderPath()
-    local script = [[
-        tell application "Finder"
-            try
-                if exists Finder window 1 then
-                    set currentFolder to target of Finder window 1 as alias
-                    return POSIX path of currentFolder
-                else
-                    return POSIX path of (path to desktop)
-                end
-            on error
-                return POSIX path of (path to desktop)
-            end try
-        end tell
-    ]]
-    local success, path = hs.osascript.applescript(script)
-    if success and path then
-        -- AppleScript results often contain a newline at the end
-        return path:gsub("\n", "")
-    else
-        return nil
-    end
-end
-
 -- Function to prompt for filename and create it
 function module.promptAndCreate()
-    local path = module.getFinderPath()
+    local path = finderUtils.getCurrentPath()
     if not path then
         hs.alert.show("Could not determine current folder.")
         return
     end
 
-    local button, filename = hs.dialog.textPrompt("Create File", "Enter filename (e.g., notes.txt):", "", "Create",
-        "Cancel")
+    local iconPath = (module.spoonPath or "") .. "images/create_file.png"
 
-    if button == "Create" and filename and filename ~= "" then
+    local filename = windowGenerator:showInputBox(
+        "Create File",
+        "Enter filename (e.g., notes.txt):",
+        "",
+        "Create",
+        iconPath
+    )
+
+    if filename and filename ~= "" then
         local fullPath = path .. filename
 
         -- Check if file exists to avoid overwriting
