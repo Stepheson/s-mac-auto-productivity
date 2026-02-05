@@ -4,7 +4,9 @@ module.version = "1.1"
 module.author = "Stepheson Alves"
 module.description = "Manages Finder visibility and hidden files."
 module.parameter_schema = { "native", "forced" }
+
 local systemUtils = require("common.systemUtils")
+local iconsManager = require("iconsManager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)
@@ -22,6 +24,7 @@ function module.getMenuItems(options)
         {
             type = "toggle",
             label = "Hidden Files: " .. (mode == "forced" and "(Forced)" or "(Native)"),
+            image = iconsManager.iconHidden_file,
             description = "Toggle visibility of hidden files",
             currentIndex = isShown and 2 or 1, -- 1=Hidden, 2=Shown
             states = {

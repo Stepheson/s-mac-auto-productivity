@@ -6,6 +6,7 @@ module.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEI
 module.parameter_schema = {}
 
 local systemUtils = require("common.systemUtils")
+local iconsManager = require("iconsManager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)
@@ -65,6 +66,7 @@ function module.getMenuItems(options)
             -- EasyLoadModules maps 'label' -> 'text'.
             label = label,
             description = "Change system screenshot file type",
+            image = iconsManager.iconScreenshot,
             menu = formatItems -- Directly pass the list of items as the submenu content
         }
     }

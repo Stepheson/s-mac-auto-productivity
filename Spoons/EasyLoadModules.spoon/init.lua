@@ -3,7 +3,7 @@
 --- A Spoon to manage modules and centralized window generation.
 --- It acts as a "Plugin Hub" for small automation scripts.
 
--- Font of icon create_file.png: https://www.pngwing.com/
+-- Font of icon create_file_icon.png: https://www.pngwing.com/
 
 local obj = {}
 obj.__index = obj
@@ -217,6 +217,12 @@ end
 
 -- Init
 function obj:init()
+    -- Add Spoon path to package.path to allow internal requires
+    local scriptPath = hs.spoons.scriptPath()
+    if scriptPath then
+        package.path = package.path .. ";" .. scriptPath .. "?.lua"
+    end
+
     self:loadModules()
     self:loadSettings()
 

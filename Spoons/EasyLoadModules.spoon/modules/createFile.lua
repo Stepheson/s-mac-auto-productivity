@@ -6,17 +6,15 @@ module.description = "Creates a new file in the current Finder directory."
 
 local finderUtils = require("common.finderUtils")
 local windowGenerator = require("common.WindowGenerator")
+local iconsManager = require("iconsManager")
 
 -- Function to return menu items
 function module.getMenuItems(options)
-    local iconPath = (module.spoonPath or "") .. "images/create_file.png"
-    local icon = hs.image.imageFromPath(iconPath)
-
     return {
         {
             text = "Create File...",
             subText = "Create a new file in current folder",
-            image = icon,
+            image = iconsManager.iconCreateFile,
             action = function()
                 module.promptAndCreate()
             end
@@ -32,14 +30,12 @@ function module.promptAndCreate()
         return
     end
 
-    local iconPath = (module.spoonPath or "") .. "images/create_file.png"
-
     local filename = windowGenerator:showInputBox(
         "Create File",
         "Enter filename (e.g., notes.txt):",
         "",
         "Create",
-        iconPath
+        iconsManager.pathCreateFile
     )
 
     if filename and filename ~= "" then

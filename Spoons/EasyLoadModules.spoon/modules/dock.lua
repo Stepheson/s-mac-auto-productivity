@@ -6,6 +6,7 @@ module.description = "Manages Dock auto-hide settings."
 module.parameter_schema = {}
 
 local systemUtils = require("common.systemUtils")
+local iconsManager = require("iconsManager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems()
@@ -16,6 +17,7 @@ function module.getMenuItems()
         {
             type = "toggle",
             label = "Dock Auto-Hide",
+            image = iconsManager.iconAutoHidden_dock,
             description = "Toggle Dock auto-hide setting",
             currentIndex = isEnabled and 2 or 1, -- 1=Disabled, 2=Enabled
             states = {

@@ -7,6 +7,7 @@ module.version = "1.0"
 module.author = "Stepheson Alves"
 module.description = "Quickly copy special characters to clipboard"
 
+local iconsManager = require("iconsManager")
 
 -- Required for WindowGenerator compatibility
 module.parameter_schema = {}
@@ -26,13 +27,18 @@ function module:getMenuItems(params)
 
     local chars = params
 
-    -- Debugging aid
-    if not chars or #chars == 0 then
-        -- Fallback check: Did we get the parent table?
-        if params and params.quickchar then
-            chars = params.quickchar
-        end
+    -- Critical Fix: If params is missing or not an array, EasyLoadModules might be passing
+    -- the *container* table (with 'quickchar' key) OR nothing at all.
+    -- We must ensure we get the array of characters.
+
+    -- Case 1: Params is the full settings table (e.g. { quickchar={...}, finder={...} })
+    if chars and chars.quickchar then
+        chars = chars.quickchar
     end
+
+    -- Case 2: Params is nil/empty (First load issue?), try to grab from parent if possible
+    -- Since this module is loaded BY EasyLoadModules, we don't have global access easily
+    -- unless we passed it.
 
     if not chars or #chars == 0 then
         table.insert(items, {
@@ -66,6 +72,7 @@ function module:getMenuItems(params)
     table.insert(items, {
         text = "Quick Char Access",
         subText = "Browse and copy special characters",
+        image = iconsManager.iconQuickChar,
         menu = charItems -- WindowGenerator handles 'menu' field recursively!
     })
 
