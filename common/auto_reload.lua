@@ -1,6 +1,6 @@
 -- autoReload.lua
 -- Independent module for watching configuration files and triggering reload
--- Usage: require("common.autoReload").start()
+-- Usage: require("common.auto_reload").start()
 
 local M = {}
 

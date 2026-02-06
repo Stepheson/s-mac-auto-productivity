@@ -22,8 +22,8 @@ hs.loadSpoon("EasyLoadModules")
 local hotkeys = {}
 
 -- ========== SIDE HOTKEY MODULE ==========
-local SideHotkey = require("common.SideHotkey")
-local WindowGenerator = require("common.WindowGenerator")
+local SideHotkey = require("common.side_hotkey")
+local WindowGenerator = require("common.window_generator")
 
 
 -- 1. Master Switch (Always Active)
@@ -38,6 +38,7 @@ end)
 
 -- 2. Operational Hotkeys (Managed)
 -- These are added to the list to be disabled on stop().
+
 
 -- Monitor Navigation
 table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "1", function()
@@ -57,7 +58,7 @@ table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "3", function()
   spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
 end))
 
-table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "6", function()
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "§", function()
   spoon.MonitorWindowApp:loadPosition()
 end))
 
@@ -72,7 +73,7 @@ end))
 
 -- Debug Tools
 table.insert(hotkeys, SideHotkey.bind({ "rightAlt", "rightShift" }, "m", function()
-  local managerMonitorsMac = require("common.managerMonitorsMac")
+  local managerMonitorsMac = require("common.manager_monitors_mac")
   managerMonitorsMac.printConnectedMonitors()
 end))
 

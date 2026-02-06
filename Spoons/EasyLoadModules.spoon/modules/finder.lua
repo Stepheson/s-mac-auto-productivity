@@ -5,8 +5,8 @@ module.author = "Stepheson Alves"
 module.description = "Manages Finder visibility and hidden files."
 module.parameter_schema = { "native", "forced" }
 
-local systemUtils = require("common.systemUtils")
-local iconsManager = require("iconsManager")
+local systemUtils = require("common.system_utils")
+local iconsManager = require("icons_manager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)

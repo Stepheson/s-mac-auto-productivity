@@ -5,8 +5,8 @@ module.author = "Stepheson Alves"
 module.description = "Manages global screenshot format (PNG/JPG/TIFF/PDF/GIF/HEIC)."
 module.parameter_schema = {}
 
-local systemUtils = require("common.systemUtils")
-local iconsManager = require("iconsManager")
+local systemUtils = require("common.system_utils")
+local iconsManager = require("icons_manager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)

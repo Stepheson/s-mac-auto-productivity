@@ -4,9 +4,9 @@ module.version = "1.1"
 module.author = "Antigravity"
 module.description = "Creates a new file in the current Finder directory."
 
-local finderUtils = require("common.finderUtils")
-local windowGenerator = require("common.WindowGenerator")
-local iconsManager = require("iconsManager")
+local finderUtils = require("common.finder_utils")
+local windowGenerator = require("common.window_generator")
+local iconsManager = require("icons_manager")
 
 -- Function to return menu items
 function module.getMenuItems(options)

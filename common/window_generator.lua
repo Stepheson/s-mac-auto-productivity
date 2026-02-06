@@ -37,7 +37,8 @@ local function processItems(items)
 
         -- Special handling for "Char" grid simulation (Icon + Text)
         if item.char then
-            choice.text = item.char .. "   " .. (item.label or "")
+            -- Added extra spaces for margin
+            choice.text = item.char .. "       " .. (item.label or "")
             if not item.description then
                 choice.subText = "Copy to clipboard"
             end
@@ -149,8 +150,19 @@ function obj:showMenu(items, placeholder)
     if not obj.chooser then
         obj.chooser = hs.chooser.new(onChoice)
         obj.chooser:bgDark(true) -- Dark mode preference
-        obj.chooser:width(25)    -- Configurable width
     end
+
+    -- Dynamic Sizing Logic (Refactored to manager_monitors_mac)
+    local monitorManager = require("common.manager_monitors_mac")
+
+    -- Default Ratios
+    local LANDSCAPE_WIDTH = 0.25
+    local PORTRAIT_WIDTH = 0.45 -- Wider on portrait (45%)
+    local VERTICAL_OFFSET = 0.30
+
+    local coords = monitorManager.getCenteredCoordinates(LANDSCAPE_WIDTH, PORTRAIT_WIDTH, VERTICAL_OFFSET)
+
+    obj.chooser:width(coords.widthPct * 100)
 
     -- Add Back button if in history
     local hasBack = (#obj.historyStack > 0)
@@ -175,7 +187,8 @@ function obj:showMenu(items, placeholder)
 
     obj.chooser:choices(displayItems)
     obj.chooser:placeholderText(placeholder or "Select Option")
-    obj.chooser:show()
+
+    obj.chooser:show(coords.centerPoint)
 end
 
 --- Show the Main Menu (Aggregation of all Spoons)

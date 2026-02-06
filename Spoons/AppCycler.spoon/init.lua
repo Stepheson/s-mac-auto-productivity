@@ -15,7 +15,7 @@ obj.license = "MIT"
 
 -- Internal state
 local isExecuting = false
-local managerMonitorsMac = require("common.managerMonitorsMac")
+local managerMonitorsMac = require("common.manager_monitors_mac")
 
 -- ========== PUBLIC API (ACTIONS) ==========
 
@@ -90,7 +90,7 @@ end
 function obj:init()
   print("AppCycler Spoon: init() called")
   -- Start Auto-Reload
-  require("common.autoReload").start()
+  require("common.auto_reload").start()
   return self
 end
 

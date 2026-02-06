@@ -14,9 +14,9 @@ obj.license = "MIT"
 
 -- Internal state
 local monitorConfigs = {}
-local managerMonitorsMac = require("common.managerMonitorsMac")
-local storageManager = require("common.storageManager")
-local configParser = require("common.configParser")
+local managerMonitorsMac = require("common.manager_monitors_mac")
+local storageManager = require("common.storage_manager")
+local configParser = require("common.config_parser")
 
 -- Garbage collection timer
 local gcTimer = nil
@@ -29,7 +29,7 @@ local STORAGE_ID = "MonitorWindowAppSt"
 --- Load configuration from MonitorWindowAppSettings.json
 -- @return self
 function obj:loadConfig()
-    local configPath = hs.configdir .. "/MonitorWindowAppSettings.json"
+    local configPath = hs.configdir .. "/Spoons/_conf_spoons/MonitorWindowAppSettings.json"
     monitorConfigs = configParser.loadConfig(configPath) or {}
     print(string.format("MonitorWindowApp: %d configuration(s) loaded from internal file", #monitorConfigs))
     return self
@@ -350,7 +350,7 @@ function obj:init()
     print("MonitorWindowApp Spoon: init() called")
 
     -- Start Auto-Reload
-    require("common.autoReload").start()
+    require("common.auto_reload").start()
 
     -- Load configuration internally
     self:loadConfig()

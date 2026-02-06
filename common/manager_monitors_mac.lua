@@ -117,4 +117,31 @@ function M.printConnectedMonitors()
     print("---------------------------------------------------\n")
 end
 
+--- Calculate centered coordinates for a window based on monitor orientation
+-- @param widthRatioLandscape number Width ratio for landscape (default 0.25)
+-- @param widthRatioPortrait number Width ratio for portrait (default 0.60)
+-- @param verticalOffsetRatio number Vertical position ratio from top (default 0.35)
+-- @return table containing widthPct and centerPoint (hs.geometry.point)
+function M.getCenteredCoordinates(widthRatioLandscape, widthRatioPortrait, verticalOffsetRatio)
+    local screen = hs.screen.mainScreen()
+    local frame = screen:frame()
+    local isPortrait = frame.h > frame.w
+
+    local widthPct = widthRatioLandscape or 0.25
+    if isPortrait then
+        widthPct = widthRatioPortrait or 0.60
+    end
+
+    local offset = verticalOffsetRatio or 0.35
+
+    local winWidth = frame.w * widthPct
+    local x = frame.x + (frame.w - winWidth) / 2
+    local y = frame.y + (frame.h * offset)
+
+    return {
+        widthPct = widthPct,
+        centerPoint = hs.geometry.point(x, y)
+    }
+end
+
 return M

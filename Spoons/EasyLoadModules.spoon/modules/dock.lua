@@ -5,8 +5,8 @@ module.author = "Stepheson Alves"
 module.description = "Manages Dock auto-hide settings."
 module.parameter_schema = {}
 
-local systemUtils = require("common.systemUtils")
-local iconsManager = require("iconsManager")
+local systemUtils = require("common.system_utils")
+local iconsManager = require("icons_manager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems()

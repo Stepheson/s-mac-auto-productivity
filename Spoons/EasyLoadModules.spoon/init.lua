@@ -15,33 +15,26 @@ obj.author = "Stepheson Alves"
 obj.homepage = "https://github.com/Hammerspoon/Spoons"
 obj.license = "MIT"
 
+-- Add Spoon path to package.path to allow internal requires
+local scriptPath = hs.spoons.scriptPath()
+if scriptPath then
+    package.path = package.path .. ";" .. scriptPath .. "?.lua"
+end
+
 -- Load Window Generator
-local windowGenerator = require("common.WindowGenerator")
+local windowGenerator = require("common.window_generator")
+local configParser = require("common.config_parser")
+-- local iconsManager = require("icons_manager")
 
 -- Internal variables
 obj.chooser = nil
 obj.availableModules = {}
 obj.settings = {} -- Store loaded JSON settings
-obj.settingsFile = hs.configdir .. "/EasyLoadModulesSettings.json"
+obj.settingsFile = hs.configdir .. "/Spoons/_conf_spoons/EasyLoadModulesSettings.json"
 
 -- Function to load settings from JSON
 function obj:loadSettings()
-    local attr = hs.fs.attributes(self.settingsFile)
-    if not attr then
-        print("EasyLoadModules: Settings file not found at " .. tostring(self.settingsFile))
-        self.settings = {}
-        return
-    end
-
-    local content = io.open(self.settingsFile, "r"):read("*a")
-    local success, data = pcall(hs.json.decode, content)
-
-    if success and type(data) == "table" then
-        self.settings = data
-    else
-        print("EasyLoadModules: Error decoding settings: " .. tostring(data))
-        self.settings = {}
-    end
+    obj.settings = configParser.loadConfig(self.settingsFile) or {}
 end
 
 -- Helper to parse dynamic parameters strings into a table
@@ -86,16 +79,33 @@ function obj:loadModules()
     print("EasyLoadModules: Scanning modules in " .. modulesPath)
     for file in hs.fs.dir(modulesPath) do
         if file ~= "." and file ~= ".." then
-            local attr = hs.fs.attributes(modulesPath .. file)
-            if attr and attr.mode == "file" and file:sub(-4) == ".lua" then
-                local loadPath = modulesPath .. file
-                local success, module = pcall(dofile, loadPath)
-                if success and type(module) == "table" and module.name then
-                    -- Store by internal name
-                    module.spoonPath = scriptPath
-                    obj.availableModules[module.name] = module
-                    print("EasyLoadModules: Registered module '" .. module.name .. "'")
+            self:registerModule(modulesPath, file, scriptPath)
+        end
+    end
+end
+
+-- Helper: Load and register a single module file
+function obj:registerModule(modulesPath, file, scriptPath)
+    local attr = hs.fs.attributes(modulesPath .. file)
+    if attr and attr.mode == "file" then
+        -- Match keys with any number of underscores (or none)
+        local fileNameWithoutExt = file:match("(.+)%.lua$")
+
+        if fileNameWithoutExt then
+            local loadPath = modulesPath .. file
+            local success, module = pcall(dofile, loadPath)
+
+            if success and type(module) == "table" then
+                -- Default name to filename if not provided
+                if not module.name then
+                    module.name = fileNameWithoutExt
                 end
+
+                module.spoonPath = scriptPath
+                obj.availableModules[module.name] = module
+                print("EasyLoadModules: Registered module '" .. module.name .. "'")
+            else
+                print("EasyLoadModules: Failed to load or invalid module: " .. file)
             end
         end
     end
@@ -202,27 +212,22 @@ function obj:buildMenu(params)
     end
 
     -- Add Help
-    table.insert(items, {
-        text = "Help",
-        subText = "Print available modules to Console",
-        action = function()
-            -- Simple help print
-            for name, _ in pairs(self.availableModules) do print("Module: " .. name) end
-            hs.alert.show("Check Console for details")
-        end
-    })
+    --    table.insert(items, {
+    --        text = "Help",
+    --        subText = "Print available modules to Console",
+    --        image = iconsManager.iconHelp,
+    --        action = function()
+    --            -- Simple help print
+    --            for name, _ in pairs(self.availableModules) do print("Module: " .. name) end
+    --            hs.alert.show("Check Console for details")
+    --        end
+    --    })
 
     return items
 end
 
 -- Init
 function obj:init()
-    -- Add Spoon path to package.path to allow internal requires
-    local scriptPath = hs.spoons.scriptPath()
-    if scriptPath then
-        package.path = package.path .. ";" .. scriptPath .. "?.lua"
-    end
-
     self:loadModules()
     self:loadSettings()
 
