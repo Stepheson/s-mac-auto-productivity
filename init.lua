@@ -25,7 +25,6 @@ local hotkeys = {}
 local SideHotkey = require("common.side_hotkey")
 local WindowGenerator = require("common.window_generator")
 
-
 -- 1. Master Switch (Always Active)
 -- These are NOT added to the 'hotkeys' list, so AutomationControl doesn't disable them.
 SideHotkey.bind({ "rightAlt", "rightShift" }, "0", function()
@@ -41,9 +40,14 @@ end)
 
 
 -- Monitor Navigation
+
+table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "§", function()
+  spoon.MonitorWindowApp:loadPosition()
+end))
+
 table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "1", function()
   print("Hotkey LeftAlt+1 pressed")
-  spoon.MonitorWindowApp:moveToMonitor("dell_standard", true)
+  spoon.MonitorWindowApp:moveToMonitor("dell_standard_margin_spaceleft", true)
 end))
 
 table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "2", function()
@@ -55,11 +59,7 @@ table.insert(hotkeys, SideHotkey.bind({ "leftAlt", "shift" }, "2", function()
 end))
 
 table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "3", function()
-  spoon.MonitorWindowApp:moveToMonitor("builtin_standard", true)
-end))
-
-table.insert(hotkeys, SideHotkey.bind({ "leftAlt" }, "§", function()
-  spoon.MonitorWindowApp:loadPosition()
+  spoon.MonitorWindowApp:moveToMonitor("builtin_standard_margin_spaceleft", true)
 end))
 
 -- App Cycling
@@ -77,11 +77,11 @@ table.insert(hotkeys, SideHotkey.bind({ "rightAlt", "rightShift" }, "m", functio
   managerMonitorsMac.printConnectedMonitors()
 end))
 
--- Shortcut to be called instead of the standard MAV "hidden" shortcut
+-- Block the left command to prevent accidental closing.
+table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "h", function() end))
+table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "q", function() end))
 -- System is not managed by AutomationControl.
-hs.hotkey.bind({ "cmd" }, "h", function() end)
---table.insert(hotkeys, hs.hotkey.bind({ "cmd" }, "h", function() end)) --managed by AutomationControl
-
+--hs.hotkey.bind({ "cmd" }, "h", function() end)
 
 -- ========== AUTOMATION CONTROL INJECTION ==========
 
