@@ -20,5 +20,6 @@ module.iconHidden_file     = loadIcon("hidden_file_icon.png")
 module.iconScreenshot      = loadIcon("screenshot_icon.png")
 module.iconAutoHidden_dock = loadIcon("autoHidden_dock_icon.png")
 -- module.iconHelp            = loadIcon("help_icon.png")
+module.iconUnhideApp       = loadIcon("unhide_app.png")
 
 return module
