@@ -1,4 +1,4 @@
-<p align="right"><code>Language:</code>
+<p alingn="right"><code>Language:</code>
     <a href="README-pt.md"><img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="20" alt="Br" valign="middle"></a>
 </p>
 
@@ -24,7 +24,7 @@ This project is built around independent "Spoons" (modules) tailored for this pr
 - [SpeedMacosCustomConfigs.spoon](#-speedmacoscustomconfigsspoon)
 - [AutomationControl.spoon](#-automationcontrolspoon)
 
-**🗜️ Common Resources (Management Tools)** 
+**🗜️ Common Resources (Management Tools)**
 
 - [Advanced: Left vs Right Modifiers (SideHotkey)](#-advanced-left-vs-right-modifiers-sidehotkey)
 

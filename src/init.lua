@@ -20,6 +20,7 @@ hs.loadSpoon("EasyLoadModules")
 
 local hotkeys = {}
 
+
 -- ========== SIDE HOTKEY MODULE ==========
 local SideHotkey = require("common.side_hotkey")
 local WindowGenerator = require("common.window_generator")
@@ -34,9 +35,14 @@ SideHotkey.bind({ "rightAlt", "rightShift" }, "1", function()
   spoon.AutomationControl:start()
 end)
 
+-- Block the left command to prevent accidental closing.
+table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "h", function() end))
+table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "q", function() end))
+-- System is not managed by AutomationControl.
+--hs.hotkey.bind({ "cmd" }, "h", function() end)
+
 -- 2. Operational Hotkeys (Managed)
 -- These are added to the list to be disabled on stop().
-
 
 -- Monitor Navigation
 
@@ -75,12 +81,6 @@ table.insert(hotkeys, SideHotkey.bind({ "rightAlt", "rightShift" }, "m", functio
   local managerMonitorsMac = require("common.manager_monitors_mac")
   managerMonitorsMac.printConnectedMonitors()
 end))
-
--- Block the left command to prevent accidental closing.
-table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "h", function() end))
-table.insert(hotkeys, SideHotkey.bind({ "leftCmd" }, "q", function() end))
--- System is not managed by AutomationControl.
---hs.hotkey.bind({ "cmd" }, "h", function() end)
 
 -- ========== AUTOMATION CONTROL INJECTION ==========
 

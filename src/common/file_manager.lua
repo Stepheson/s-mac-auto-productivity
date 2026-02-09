@@ -37,22 +37,23 @@ end
 
 --- Read file content
 --- @param path string Absolute path
---- @return string|nil content, or nil on error
+--- @return string|nil content content, or nil on error
+--- @return string|nil error Error message if failed
 function fileManager.readFile(path)
     if not fileManager.exists(path) then
         logger.w("File not found: " .. path)
-        return nil
+        return nil, "File not found: " .. path
     end
 
     local file, err = io.open(path, "r")
     if not file then
         logger.e("Failed to open file for reading: " .. path .. " Error: " .. (err or "unknown"))
-        return nil
+        return nil, err
     end
 
     local content = file:read("*all")
     file:close()
-    return content
+    return content, nil
 end
 
 --- Write content to file
