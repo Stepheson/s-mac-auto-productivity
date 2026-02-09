@@ -156,11 +156,12 @@ function obj:showMenu(items, placeholder)
     local monitorManager = require("common.manager_monitors_mac")
 
     -- Default Ratios
-    local LANDSCAPE_WIDTH = 0.25
-    local PORTRAIT_WIDTH = 0.45 -- Wider on portrait (45%)
-    local VERTICAL_OFFSET = 0.30
+    -- Default Ratios
+    local widthRatio = 0.25
+    local portraitRatio = 0.45 -- Wider on portrait (45%)
+    local verticalOffset = 0.30
 
-    local coords = monitorManager.getCenteredCoordinates(LANDSCAPE_WIDTH, PORTRAIT_WIDTH, VERTICAL_OFFSET)
+    local coords = monitorManager.getCenteredCoordinates(widthRatio, portraitRatio, verticalOffset)
 
     obj.chooser:width(coords.widthPct * 100)
 
@@ -225,8 +226,7 @@ function obj:showMain()
         end
     end
 
-    -- Sort by text -- Removed to respect provider order
-    -- table.sort(mainItems, function(a, b) return a.text < b.text end)
+
 
     obj:showMenu(mainItems, "Main Menu")
 end

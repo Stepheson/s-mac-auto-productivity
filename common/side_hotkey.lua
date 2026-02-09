@@ -15,29 +15,17 @@ local function getKeyCode(key)
     return code
 end
 
--- CONSTANTS: Keycodes for Modifiers
-local KOD_LEFT_ALT         = 58
-local KOD_RIGHT_ALT        = 61
-local KOD_LEFT_CMD         = 55
-local KOD_RIGHT_CMD        = 54
-local KOD_LEFT_SHIFT       = 56
-local KOD_RIGHT_SHIFT      = 60
-local KOD_LEFT_CTRL        = 59
-local KOD_RIGHT_CTRL       = 62
+local KOD_LEFT_ALT    = 58
+local KOD_RIGHT_ALT   = 61
+local KOD_LEFT_CMD    = 55
+local KOD_RIGHT_CMD   = 54
+local KOD_LEFT_SHIFT  = 56
+local KOD_RIGHT_SHIFT = 60
+local KOD_LEFT_CTRL   = 59
+local KOD_RIGHT_CTRL  = 62
 
--- Internal Modifier State (tracked manually)
-local modState             = {
-    leftAlt = false,
-    rightAlt = false,
-    leftCmd = false,
-    rightCmd = false,
-    leftShift = false,
-    rightShift = false,
-    leftCtrl = false,
-    rightCtrl = false
-}
 
--- REFINED TRACKER: Keep a set of active modifier codes
+
 SideHotkey.activeSideCodes = {}
 
 local function updateModifierState(event)
@@ -47,12 +35,9 @@ local function updateModifierState(event)
     -- Helper to handle toggle logic with safety cleanup
     local function handleModifier(leftCode, rightCode, flagState)
         if not flagState then
-            -- Safety: If global flag is off, BOTH sides must be off
             SideHotkey.activeSideCodes[leftCode] = nil
             SideHotkey.activeSideCodes[rightCode] = nil
         else
-            -- Flag is active, and we received an event for one of these keys.
-            -- This implies a state change (Toggle) for that specific key.
             if code == leftCode or code == rightCode then
                 if SideHotkey.activeSideCodes[code] then
                     SideHotkey.activeSideCodes[code] = nil
@@ -63,7 +48,6 @@ local function updateModifierState(event)
         end
     end
 
-    -- Apply logic for each modifier group
     handleModifier(KOD_LEFT_ALT, KOD_RIGHT_ALT, flags.alt)
     handleModifier(KOD_LEFT_CMD, KOD_RIGHT_CMD, flags.cmd)
     handleModifier(KOD_LEFT_SHIFT, KOD_RIGHT_SHIFT, flags.shift)
@@ -78,37 +62,61 @@ SideHotkey.tracker:start()
 local function checkModifiers(requiredMods)
     local currentFlags = hs.eventtap.checkKeyboardModifiers()
 
+    local requiredSet = {
+        alt = false,
+        cmd = false,
+        shift = false,
+        ctrl = false,
+        -- Specifics
+        leftAlt = false,
+        rightAlt = false,
+        leftCmd = false,
+        rightCmd = false,
+        leftShift = false,
+        rightShift = false,
+        leftCtrl = false,
+        rightCtrl = false
+    }
+
     for _, mod in ipairs(requiredMods) do
-        local requiredCode = nil
-        local genericFlag = nil
+        requiredSet[mod] = true
 
+        if mod == "leftAlt" or mod == "rightAlt" then requiredSet.alt = true end
+        if mod == "leftCmd" or mod == "rightCmd" then requiredSet.cmd = true end
+        if mod == "leftShift" or mod == "rightShift" then requiredSet.shift = true end
+        if mod == "leftCtrl" or mod == "rightCtrl" then requiredSet.ctrl = true end
+    end
+
+    -- 2. Verify all REQUIRED modifiers are present
+    for _, mod in ipairs(requiredMods) do
         if mod == "leftAlt" then
-            requiredCode = KOD_LEFT_ALT; genericFlag = "alt"
+            if not (currentFlags.alt and SideHotkey.activeSideCodes[KOD_LEFT_ALT]) then return false end
         elseif mod == "rightAlt" then
-            requiredCode = KOD_RIGHT_ALT; genericFlag = "alt"
+            if not (currentFlags.alt and SideHotkey.activeSideCodes[KOD_RIGHT_ALT]) then return false end
         elseif mod == "leftCmd" then
-            requiredCode = KOD_LEFT_CMD; genericFlag = "cmd"
+            if not (currentFlags.cmd and SideHotkey.activeSideCodes[KOD_LEFT_CMD]) then return false end
         elseif mod == "rightCmd" then
-            requiredCode = KOD_RIGHT_CMD; genericFlag = "cmd"
+            if not (currentFlags.cmd and SideHotkey.activeSideCodes[KOD_RIGHT_CMD]) then return false end
         elseif mod == "leftShift" then
-            requiredCode = KOD_LEFT_SHIFT; genericFlag = "shift"
+            if not (currentFlags.shift and SideHotkey.activeSideCodes[KOD_LEFT_SHIFT]) then return false end
         elseif mod == "rightShift" then
-            requiredCode = KOD_RIGHT_SHIFT; genericFlag = "shift"
-        end
-
-        if requiredCode then
-            -- 1. Must have generic flag
-            if not currentFlags[genericFlag] then return false end
-            -- 2. Must have specific code tracked
-            if not SideHotkey.activeSideCodes[requiredCode] then return false end
+            if not (currentFlags.shift and SideHotkey.activeSideCodes[KOD_RIGHT_SHIFT]) then return false end
+        elseif mod == "leftCtrl" then
+            if not (currentFlags.ctrl and SideHotkey.activeSideCodes[KOD_LEFT_CTRL]) then return false end
+        elseif mod == "rightCtrl" then
+            if not (currentFlags.ctrl and SideHotkey.activeSideCodes[KOD_RIGHT_CTRL]) then return false end
         else
             -- Generic
-            if mod == "alt" and not currentFlags.alt then return false end
-            if mod == "shift" and not currentFlags.shift then return false end
-            if mod == "cmd" and not currentFlags.cmd then return false end
-            if mod == "ctrl" and not currentFlags.ctrl then return false end
+            if not currentFlags[mod] then return false end
         end
     end
+
+    -- 3. Verify NO EXTRA modifiers are present (Strict Matching)
+    -- Check generics: if currentFlags has 'alt' but we didn't require it, fail.
+    if currentFlags.alt and not requiredSet.alt then return false end
+    if currentFlags.cmd and not requiredSet.cmd then return false end
+    if currentFlags.shift and not requiredSet.shift then return false end
+    if currentFlags.ctrl and not requiredSet.ctrl then return false end
 
     return true
 end

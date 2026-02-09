@@ -24,7 +24,7 @@ end
 -- Load Window Generator
 local windowGenerator = require("common.window_generator")
 local configParser = require("common.config_parser")
--- local iconsManager = require("icons_manager")
+
 
 -- Internal variables
 obj.chooser = nil

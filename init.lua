@@ -8,8 +8,7 @@ print("===========================================")
 
 -- ========== PATH CONFIGURATION ==========
 -- Ensure we can load Spoons and common modules
---package.path = package.path .. ";" .. hs.configdir .. "/Spoons/?.lua"
---package.path = package.path .. ";" .. hs.configdir .. "/?.lua"
+
 
 -- ========== LOAD SPOONS ==========
 hs.loadSpoon("AutomationControl")
