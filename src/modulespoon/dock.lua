@@ -6,7 +6,6 @@ module.description = "Manages Dock auto-hide settings."
 module.parameter_schema = {}
 
 local systemUtils = require("common.system_utils")
-local iconsManager = require("icons_manager")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems()
@@ -17,7 +16,7 @@ function module.getMenuItems()
         {
             type = "toggle",
             label = "Dock Auto-Hide",
-            image = iconsManager.iconAutoHidden_dock,
+            image = hs.image.imageFromPath(hs.configdir .. "/modulespoon/images/autoHidden_dock_icon.png"),
             description = "Toggle Dock auto-hide setting",
             currentIndex = isEnabled and 2 or 1, -- 1=Disabled, 2=Enabled
             states = {

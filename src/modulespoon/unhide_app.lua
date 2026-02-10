@@ -4,7 +4,7 @@ module.version = "1.2"
 module.author = "Stepheson Alves"
 module.description = "List and restore hidden or minimized applications."
 
-local iconsManager = require("icons_manager")
+local iconsManager = nil
 
 -- Function to return menu items (Schema)
 function module.getMenuItems(options)
@@ -12,7 +12,7 @@ function module.getMenuItems(options)
         {
             text = "Unhide App",
             subText = "Show hidden or minimized applications",
-            image = iconsManager.iconUnhideApp,
+            image = hs.image.imageFromPath(hs.configdir .. "/modulespoon/images/unhide_app.png"),
             action = function()
                 module.showHiddenAppsMenu()
             end

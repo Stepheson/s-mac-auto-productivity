@@ -37,6 +37,8 @@ function obj:loadSettings()
     obj.settings = configParser.loadConfig(self.settingsFile) or {}
 end
 
+-- Global helper LoadIcon removed in favor of direct path concatenation in modules.
+
 -- Helper to parse dynamic parameters strings into a table
 -- Matches module names case-insensitively
 local function parseParams(params)
@@ -63,13 +65,13 @@ end
 
 -- Function to dynamically load modules from the 'modules' directory
 function obj:loadModules()
-    local scriptPath = hs.spoons.scriptPath()
-    if not scriptPath then
-        print("EasyLoadModules: ERROR - scriptPath is nil")
-        return
-    end
+    -- New path: ProjectRoot/src/modulespoon/
+    -- We assume hs.configdir points to ProjectRoot/src (if init.lua is there) or ProjectRoot?
+    -- Standard Hammerspoon config is ~/.hammerspoon/init.lua.
+    -- Our project structure is `src/init.lua`.
+    -- So `hs.configdir` points to the directory containing `init.lua`.
 
-    local modulesPath = scriptPath .. "modules/"
+    local modulesPath = hs.configdir .. "/modulespoon/"
 
     if not hs.fs.attributes(modulesPath) then
         print("EasyLoadModules: ERROR - Directory not found: " .. modulesPath)
@@ -79,7 +81,7 @@ function obj:loadModules()
     print("EasyLoadModules: Scanning modules in " .. modulesPath)
     for file in hs.fs.dir(modulesPath) do
         if file ~= "." and file ~= ".." then
-            self:registerModule(modulesPath, file, scriptPath)
+            self:registerModule(modulesPath, file, hs.configdir) -- Pass configdir as base path?
         end
     end
 end

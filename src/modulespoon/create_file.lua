@@ -6,7 +6,6 @@ module.description = "Creates a new file in the current Finder directory."
 
 local finderUtils = require("common.finder_utils")
 local windowGenerator = require("common.window_generator")
-local iconsManager = require("icons_manager")
 
 -- Function to return menu items
 function module.getMenuItems(options)
@@ -14,13 +13,17 @@ function module.getMenuItems(options)
         {
             text = "Create File...",
             subText = "Create a new file in current folder",
-            image = iconsManager.iconCreateFile,
+            image = hs.image.imageFromPath(hs.configdir .. "/modulespoon/images/create_file_icon.png"),
             action = function()
                 module.promptAndCreate()
             end
         }
     }
 end
+
+--------------------------------------------------------------------------------
+-- Functions
+--------------------------------------------------------------------------------
 
 -- Function to prompt for filename and create it
 function module.promptAndCreate()
@@ -35,7 +38,7 @@ function module.promptAndCreate()
         "Enter filename (e.g., notes.txt):",
         "",
         "Create",
-        iconsManager.pathCreateFile
+        hs.configdir .. "/modulespoon/images/create_file_icon.png"
     )
 
     if filename and filename ~= "" then

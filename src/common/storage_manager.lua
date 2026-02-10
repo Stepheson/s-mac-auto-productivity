@@ -9,7 +9,7 @@ local fileManager = require("common.file_manager")
 local logger = hs.logger.new('StorageManager', 'info')
 
 -- Private constants
-local STORAGE_DIR = "storage"
+local STORAGE_DIR = "Spoons/storage_configs"
 
 -- ============================================================================
 -- PRIVATE METHODS

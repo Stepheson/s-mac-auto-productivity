@@ -7,8 +7,6 @@ module.version = "1.0"
 module.author = "Stepheson Alves"
 module.description = "Quickly copy special characters to clipboard"
 
-local iconsManager = require("icons_manager")
-
 -- Required for WindowGenerator compatibility
 module.parameter_schema = {}
 
@@ -56,7 +54,7 @@ function module:getMenuItems(params)
     table.insert(items, {
         text = "Quick Char Access",
         subText = "Browse and copy special characters",
-        image = iconsManager.iconQuickChar,
+        image = hs.image.imageFromPath(hs.configdir .. "/modulespoon/images/quickChar_icon.png"),
         menu = charItems -- WindowGenerator handles 'menu' field recursively!
     })
 
