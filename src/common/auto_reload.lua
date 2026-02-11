@@ -12,7 +12,7 @@ local function reloadConfig(files)
     local doReload = false
     for _, file in pairs(files) do
         -- Ignore storage directory (contains position data that shouldn't trigger reload)
-        if not file:match("storage/") and (file:sub(-4) == ".lua" or file:sub(-5) == ".json") then
+        if not file:match("Spoons/storage_configs/") and (file:sub(-4) == ".lua" or file:sub(-5) == ".json") then
             doReload = true
             print(string.format("[AutoReload] Change detected: %s", file))
         end

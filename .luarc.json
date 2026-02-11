@@ -1,0 +1,32 @@
+{
+  "HS_BIN": "/opt/homebrew/bin/hs",
+  "runtime": {
+    "version": "Lua 5.4",
+    "path": [
+      "?.lua",
+      "src/?.lua",
+      "src/?/init.lua",
+      "src/Spoons/?.lua",
+      "src/Spoons/?/init.lua",
+      "src/common/?.lua",
+      "src/common/?/init.lua",
+      "src/modulespoon/?.lua",
+      "src/modulespoon/?/init.lua",
+      "src/modulespoon/?/?.lua"
+    ]
+  },
+  "workspace": {
+    "library": [
+      "/Applications/Hammerspoon.app/Contents/Resources/extensions/hs/",
+      "~/.hammerspoon/Spoons/"
+    ],
+    "checkThirdParty": false
+    },
+      "diagnostics": {
+    "globals": [
+      "hs",
+      "spoon"
+    ]
+    ,"disable": ["lowercase-global"]
+  }
+}
