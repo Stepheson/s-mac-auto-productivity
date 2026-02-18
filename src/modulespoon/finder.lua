@@ -5,6 +5,12 @@ module.author = "Stepheson Alves"
 module.description = "Manages Finder visibility and hidden files."
 module.parameter_schema = { "native", "forced" }
 
+-- State Cache
+module.state = {
+    isVisible = false,
+    isLoaded = false
+}
+
 local systemUtils = require("common.system_utils")
 
 -- Function to return menu items (Schema)
@@ -17,7 +23,7 @@ function module.getMenuItems(options)
         funcToggle = module.toggleHiddenFilesForced
     end
 
-    local isShown = module.getHiddenFilesState()
+    local isShown = module.state.isVisible
 
     return {
         {
@@ -51,7 +57,15 @@ function module.toggleHiddenFiles()
         -- Use the native shortcut: Cmd + Shift + .
         -- This toggles visibility instantly without killing Finder
         hs.eventtap.keyStroke({ "cmd", "shift" }, ".", finder)
-        hs.alert.show("Finder: Toggled Hidden Files (Native)")
+
+        -- Optimistic Update (Assuming toggle worked)
+        module.state.isVisible = not module.state.isVisible
+        local msg = module.state.isVisible and "Finder: Hidden Files Shown (Native)" or
+        "Finder: Hidden Files Hidden (Native)"
+        hs.alert.show(msg)
+
+        -- Refresh cache after delay to confirm actual usage
+        hs.timer.doAfter(1.0, module.updateCache)
     else
         hs.alert.show("Finder is not running")
     end
@@ -59,39 +73,44 @@ end
 
 -- Function to toggle Hidden Files using Forced Method (Defaults + Killall) - Fallback
 function module.toggleHiddenFilesForced()
-    -- We can read the state just to flip it, or just blindly flip based on assumptions?
-    -- Better to read the state to flip it correctly.
-    local output, status = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
-    local currentState = "false"
-    if output then
-        local cleanOutput = output:gsub("%s+", ""):lower()
-        if (cleanOutput == "1" or cleanOutput == "true" or cleanOutput == "yes" or cleanOutput == "on") then
-            currentState = "true"
-        end
-    end
+    -- 1. Optimistic Update
+    local newState = not module.state.isVisible
+    module.state.isVisible = newState
 
-    local newState = (currentState == "true") and "false" or "true"
+    local newStateStr = newState and "true" or "false"
+    local msg = newState and "Finder: Hidden Files Shown (Forced)" or "Finder: Hidden Files Hidden (Forced)"
 
-    hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.finder", "AppleShowAllFiles", "-bool", newState }):start()
-
-    local msg = (newState == "true") and "Finder: Hidden Files Shown (Forced)" or "Finder: Hidden Files Hidden (Forced)"
+    -- 2. Immediate Feedback
     hs.alert.show(msg)
 
-    systemUtils.killApp("Finder")
-
-    print("[Finder] Toggled hidden files (Forced mode)")
-end
-
--- Helper to get current hidden files state
-function module.getHiddenFilesState()
-    local output = hs.execute("defaults read com.apple.finder AppleShowAllFiles")
-    if output then
-        local clean = output:gsub("%s+", ""):lower()
-        if clean == "1" or clean == "true" or clean == "yes" then
-            return true
+    -- 3. Async Write
+    hs.task.new("/usr/bin/defaults", function(exitCode, stdOut, stdErr)
+        if exitCode == 0 then
+            -- 4. Apply Changes
+            systemUtils.killApp("Finder")
+            print("Finder: Async toggle complete (" .. newStateStr .. ")")
+        else
+            print("Finder: Error writing defaults: " .. tostring(stdErr))
         end
-    end
-    return false
+    end, { "write", "com.apple.finder", "AppleShowAllFiles", "-bool", newStateStr }):start()
 end
+
+-- Async State Initialization/Refresh
+function module.updateCache()
+    hs.task.new("/usr/bin/defaults", function(exitCode, stdOut, stdErr)
+        if exitCode == 0 and stdOut then
+            local clean = stdOut:gsub("%s+", ""):lower()
+            module.state.isVisible = (clean == "1" or clean == "true" or clean == "yes" or clean == "on")
+            module.state.isLoaded = true
+            -- print("Finder: Cache updated. Visible=" .. tostring(module.state.isVisible))
+        else
+            -- Default to Hidden if key doesn't exist or error
+            -- module.state.isVisible = false
+        end
+    end, { "read", "com.apple.finder", "AppleShowAllFiles" }):start()
+end
+
+-- Initial Load
+module.updateCache()
 
 return module

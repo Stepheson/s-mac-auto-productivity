@@ -5,12 +5,18 @@ module.author = "Stepheson Alves"
 module.description = "Manages Dock auto-hide settings."
 module.parameter_schema = {}
 
+-- State Cache
+module.state = {
+    isEnabled = false,
+    isLoaded = false
+}
+
 local systemUtils = require("common.system_utils")
 
 -- Function to return menu items (Schema)
 function module.getMenuItems()
-    local state = module.getDockAutoHideState()
-    local isEnabled = (state == "1" or state == "true")
+    -- Optimistic Read: Return cached state immediately
+    local isEnabled = module.state.isEnabled
 
     return {
         {
@@ -37,31 +43,44 @@ end
 -- Functions
 --------------------------------------------------------------------------------
 
--- Function to toggle Dock auto-hide
+-- Function to toggle Dock auto-hide (Optimistic & Async)
 function module.toggleDockAutoHide()
-    local output, status = hs.execute("defaults read com.apple.dock autohide")
-    local currentState = (output and output:gsub("%s+", "") == "1")
+    -- 1. Optimistic Update
+    local newState = not module.state.isEnabled
+    module.state.isEnabled = newState
 
-    local newState = not currentState
     local newStateStr = newState and "true" or "false"
-
-    hs.task.new("/usr/bin/defaults", nil, { "write", "com.apple.dock", "autohide", "-bool", newStateStr }):start()
-    print("Dock: Executed defaults write autohide " .. newStateStr)
-
     local msg = newState and "Dock: Auto-Hide Enabled" or "Dock: Auto-Hide Disabled"
+
+    -- 2. Immediate Feedback
     hs.alert.show(msg)
 
-    systemUtils.killApp("Dock")
-    print("Dock: Executed killall Dock")
+    -- 3. Async Write
+    hs.task.new("/usr/bin/defaults", function(exitCode, stdOut, stdErr)
+        if exitCode == 0 then
+            -- 4. Apply Changes
+            systemUtils.killApp("Dock")
+            print("Dock: Async toggle complete (" .. newStateStr .. ")")
+        else
+            print("Dock: Error writing defaults: " .. tostring(stdErr))
+            -- Revert state on failure? For now, we assume success or user will retry.
+        end
+    end, { "write", "com.apple.dock", "autohide", "-bool", newStateStr }):start()
 end
 
--- Function to get current state
-function module.getDockAutoHideState()
-    local output, status = hs.execute("defaults read com.apple.dock autohide")
-    if output then
-        return output:gsub("%s+", "") -- Trim whitespace
-    end
-    return "0"
+-- Async State Initialization/Refresh
+function module.updateCache()
+    hs.task.new("/usr/bin/defaults", function(exitCode, stdOut, stdErr)
+        if exitCode == 0 and stdOut then
+            local clean = stdOut:gsub("%s+", "")
+            module.state.isEnabled = (clean == "1" or clean == "true")
+            module.state.isLoaded = true
+            -- print("Dock: Cache updated. AutoHide=" .. tostring(module.state.isEnabled))
+        end
+    end, { "read", "com.apple.dock", "autohide" }):start()
 end
+
+-- Initial Load
+module.updateCache()
 
 return module

@@ -59,8 +59,8 @@ end
 SideHotkey.tracker = eventtap.new({ eventTypes.flagsChanged }, updateModifierState)
 SideHotkey.tracker:start()
 
-local function checkModifiers(requiredMods)
-    local currentFlags = hs.eventtap.checkKeyboardModifiers()
+local function checkModifiers(requiredMods, currentFlags)
+    currentFlags = currentFlags or hs.eventtap.checkKeyboardModifiers()
 
     local requiredSet = {
         alt = false,
@@ -125,10 +125,12 @@ end
 -- The main event listener
 SideHotkey.listener = eventtap.new({ eventTypes.keyDown }, function(event)
     local code = event:getKeyCode()
+    -- Performance fix: Get modifiers ONCE per event, not per binding check
+    local currentFlags = hs.eventtap.checkKeyboardModifiers()
 
     for _, binding in ipairs(SideHotkey.bindings) do
         if binding.enabled and binding.keyCode == code then
-            if checkModifiers(binding.modifiers) then
+            if checkModifiers(binding.modifiers, currentFlags) then
                 local status, err = pcall(binding.fn)
                 if not status then print("🔴 Error: " .. tostring(err)) end
                 return true -- Consume event

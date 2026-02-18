@@ -16,21 +16,17 @@ obj.license = "MIT - https://opensource.org/licenses/MIT"
 -- Internal state
 local registeredHotkeys = {}
 local registeredSpoons = {}
-local isActive = false
+local isActive = true -- Default to active (started) unless stopped explicitly
 
 -- ========== HOTKEY MANAGEMENT ==========
 
---- Register existing hotkey objects for management
--- @param hotkeys table List of hs.hotkey objects
-function obj:registerHotkeys(hotkeys)
-    if not hotkeys or type(hotkeys) ~= "table" then
-        return self
-    end
+--- Register hotkey objects for management
+-- @param input table|userdata List of hotkeys OR a single hotkey object
+function obj:register(input)
+    if not input then return self end
 
-    for _, hk in ipairs(hotkeys) do
+    local function add(hk)
         table.insert(registeredHotkeys, hk)
-
-        -- Sync state: if active, enable; if inactive, disable
         if isActive then
             hk:enable()
         else
@@ -38,7 +34,24 @@ function obj:registerHotkeys(hotkeys)
         end
     end
 
+    -- Check if it's a list (table and not a hotkey object)
+    -- hs.hotkey objects are userdata or tables with metamethods, but usually we can check for 'enable'
+    if type(input) == "table" and not (input.enable and input.disable) then
+        -- Assume list
+        for _, hk in ipairs(input) do
+            add(hk)
+        end
+    else
+        -- Assume single object
+        add(input)
+    end
+
     return self
+end
+
+--- Deprecated: Alias for backward compatibility
+function obj:registerHotkeys(hotkeys)
+    return self:register(hotkeys)
 end
 
 --- Enable managed hotkeys
