@@ -36,9 +36,9 @@ Spoons --> EasyLoad[EasyLoadModules]
 
 ### Components
 
-- **[Spoons](Spoons/)**: Full-featured Hammerspoon modules (Window management, App cycling).
-- **[Common](common/README-common.md)**: Shared libraries for window generation, file I/O, and config parsing.
-- **[Modules](modulespoon/README-modules.md)**: Lightweight scripts managed by `EasyLoadModules` (System toggles, specific actions).
+- **[Spoons](src/Spoons/)**: Full-featured Hammerspoon modules (Window management, App cycling).
+- **[Common](src/common/README-common.md)**: Shared libraries for window generation, file I/O, and config parsing.
+- **[Modules](src/modulespoon/README-modules.md)**: Lightweight scripts managed by `EasyLoadModules` (System toggles, specific actions).
 
 ## 🏗️ Architecture
 
