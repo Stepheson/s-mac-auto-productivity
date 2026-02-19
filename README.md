@@ -1,19 +1,8 @@
 # s-MAC-Auto-Productivity (v2.0 Alfa)
 
-<table width="100%" border="0">
-  <tr>
-    <!-- <td align="left" style="border: none;">
-      <code>Language:</code>
-      <a href="README-pt.md">
-        <img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="20" alt="Br" style="vertical-align: middle;">
-      </a>
-    </td> -->
-    <td align="right" style="border: none;">
-      <img src="https://img.shields.io/badge/Language-Lua-gold.svg" alt="Lua" style="vertical-align: middle;">
-      <img src="https://img.shields.io/badge/Platform-macOS-lightgrey.svg" alt="macOS" style="vertical-align: middle;">
-    </td>
-  </tr>
-</table>
+<!-- <a href="README-pt.md"><img src="https://hatscripts.github.io/circle-flags/flags/br.svg" width="20" alt="Br"></a> -->
+<img align="right" src="https://img.shields.io/badge/Language-Lua-gold.svg" alt="Lua">
+<img align="right" src="https://img.shields.io/badge/Platform-macOS-lightgrey.svg" alt="macOS">
 
 A modular, robust, and clean automation suite for macOS using [Hammerspoon](https://www.hammerspoon.org/).
 
@@ -29,7 +18,7 @@ This project is built around independent "Spoons" (modules) tailored for product
 
 ## ⌨️ Current Preconfigured Spoons and Shortcuts
 
-```mermaid
+```
 Spoons --> Monitor[MonitorWindowApp]
 Spoons --> Cycler[AppCycler]
 Spoons --> Control[AutomationControl]
