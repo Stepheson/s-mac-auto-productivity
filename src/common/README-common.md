@@ -1,7 +1,5 @@
 # Common Utilities
 
-**Path**: `src/common/`
-
 Shared libraries used by Spoons and Modules. These abstractions ensure consistent behavior across the automation suite.
 
 ## 🧰 Utilities List
