@@ -1,7 +1,5 @@
 # Lightweight Modules
 
-**Path**: `modulespoon/`
-
 These modules are lightweight automation scripts loaded dynamically by `EasyLoadModules.spoon`. They are designed for quick, specific actions without the overhead of a full Spoon.
 
 ## 📑 Module Catalog
