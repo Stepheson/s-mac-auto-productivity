@@ -44,11 +44,19 @@ spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "§", function()
 end))
 
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "1", function()
-  spoon.MonitorWindowApp:moveToMonitor("dell_standard_margin_spaceleft", true)
+  spoon.MonitorWindowApp:moveToMonitor({
+    [1] = "builtin_standard_margin_spaceleft",
+    [2] = "monitor_MX279_margin_spaceleft",
+    [3] = "monitor_MX279_margin_spaceleft",
+  }, true)
 end))
 
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "2", function()
-  spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
+  spoon.MonitorWindowApp:moveToMonitor({
+    [1] = "builtin_standard_margin_spaceleft",
+    [2] = "dell_standard_margin_spaceleft",
+    [3] = "dell_standard_margin_spaceleft"
+  }, true)
 end))
 
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt", "shift" }, "2", function()

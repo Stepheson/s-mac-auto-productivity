@@ -117,7 +117,7 @@ end
 -- ========== PUBLIC API (ACTIONS) ==========
 
 --- Move focused window to monitor by position ID
---- @param positionID string Configuration ID (e.g., "dell_standard")
+--- @param positionID string|table Configuration ID (e.g., "dell_standard") or a table mapping { [numberOfScreens] = "positionID" }
 --- @param shouldSave boolean (optional) If true, saves position to storage
 --- @return self
 function obj:moveToMonitor(positionID, shouldSave)
@@ -127,9 +127,21 @@ function obj:moveToMonitor(positionID, shouldSave)
         return self
     end
 
-    local config = getMonitorConfigByPositionID(positionID)
+    local actualPositionID = positionID
+    local nscreenw = #hs.screen.allScreens()
+
+    if type(positionID) == "table" then
+        actualPositionID = positionID[nscreenw]
+        
+        if not actualPositionID then
+            hs.alert.show(string.format("⚠️ No configuration created for this shortcut with %d monitor(s) specified", nscreenw), 4)
+            return self
+        end
+    end
+
+    local config = getMonitorConfigByPositionID(actualPositionID)
     if not config then
-        hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. positionID }):send()
+        hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. tostring(actualPositionID) }):send()
         return self
     end
 
@@ -143,7 +155,7 @@ function obj:moveToMonitor(positionID, shouldSave)
 
     -- Only save if move was successful
     if shouldSave then
-        self:saveCurrentPosition(positionID)
+        self:saveCurrentPosition(actualPositionID)
     end
 
     return self
