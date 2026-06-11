@@ -46,6 +46,21 @@ local function getMonitorConfigByPositionID(positionID)
     return nil
 end
 
+local function findScreenByName(monitorName)
+    -- Aceita tanto string quanto array
+    local names = type(monitorName) == "table" and monitorName or { monitorName }
+
+    for _, name in ipairs(names) do
+        local screen = managerMonitorsMac.getMonitorByName(name)
+        if screen then
+            print(string.format("✅ Monitor encontrado com nome: '%s'", name))
+            return screen
+        end
+    end
+
+    return nil
+end
+
 local function calculateTargetFrame(screenFrame, margins)
     margins = margins or {}
 
@@ -74,11 +89,15 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     end
 
     -- Use monitorName to find the physical screen
-    local targetScreen = managerMonitorsMac.getMonitorByName(monitorConfig.monitorName)
+    local targetScreen = findScreenByName(monitorConfig.monitorName)
 
     if not targetScreen then
         print(string.format("Monitor '%s' not found (disconnected) for config '%s'",
-            monitorConfig.monitorName, monitorConfig.positionID))
+            -- Exibe todos os nomes tentados para facilitar debug
+            type(monitorConfig.monitorName) == "table"
+            and table.concat(monitorConfig.monitorName, ", ")
+            or monitorConfig.monitorName,
+            monitorConfig.positionID))
         return false
     end
 
@@ -132,16 +151,18 @@ function obj:moveToMonitor(positionID, shouldSave)
 
     if type(positionID) == "table" then
         actualPositionID = positionID[nscreenw]
-        
+
         if not actualPositionID then
-            hs.alert.show(string.format("⚠️ No configuration created for this shortcut with %d monitor(s) specified", nscreenw), 4)
+            hs.alert.show(
+            string.format("⚠️ No configuration created for this shortcut with %d monitor(s) specified", nscreenw), 4)
             return self
         end
     end
 
     local config = getMonitorConfigByPositionID(actualPositionID)
     if not config then
-        hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. tostring(actualPositionID) }):send()
+        hs.notify.new({ title = "Hammerspoon", informativeText = "Config not found: " .. tostring(actualPositionID) })
+            :send()
         return self
     end
 
