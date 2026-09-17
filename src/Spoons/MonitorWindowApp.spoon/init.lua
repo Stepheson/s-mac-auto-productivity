@@ -77,6 +77,17 @@ local function calculateTargetFrame(screenFrame, margins)
     }
 end
 
+--- Handle post-move window state (focus vs. minimize)
+-- @param win userdata Target window object
+-- @param monitorConfig table Monitor configuration table containing optional moveMinimized
+local function handlePostMoveWindowState(win, monitorConfig)
+    if monitorConfig and monitorConfig.moveMinimized == true then
+        win:minimize()
+    else
+        win:focus()
+    end
+end
+
 --- Internal function to move window to monitor
 -- @param monitorConfig table Monitor configuration with positionID, monitorName and margins
 -- @param targetWindow userdata (optional) Window object to move, uses focused window if nil
@@ -116,10 +127,10 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
 
     -- STEP 2: Apply margins after delay
     hs.timer.doAfter(0.2, function()
-        win:focus()
-
         local targetFrame = calculateTargetFrame(screenFrame, monitorConfig.margins)
         win:setFrame(targetFrame, 0)
+
+        handlePostMoveWindowState(win, monitorConfig)
 
         print(string.format("Window moved to config '%s' on monitor '%s'",
             monitorConfig.positionID, monitorConfig.monitorName))

@@ -26,9 +26,23 @@
   },
   {
     "positionID": "builtin_standard",
-    "monitorName": "Built-in Retina Display",
+    "monitorName": [
+      "Built-in Display",
+      "Built-in Retina Display"
+    ],
     "margins": {
       "left": 0.035
+    }
+  },
+  {
+    "positionID": "builtin_standard_minimized",
+    "monitorName": [
+      "Built-in Display",
+      "Built-in Retina Display"
+    ],
+    "moveMinimized": true,
+    "margins": {
+      "left": 0.05
     }
   }
 ]
