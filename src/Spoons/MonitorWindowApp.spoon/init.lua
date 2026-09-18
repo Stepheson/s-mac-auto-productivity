@@ -77,21 +77,25 @@ end
 
 --- Handle post-move window state (focus vs. deferred minimize)
 -- @param win userdata Target window object
--- @param monitorConfig table Monitor configuration table containing optional moveMinimized
+-- @param monitorConfig table Monitor configuration table containing optional timerToMinimize
 local function handlePostMoveWindowState(win, monitorConfig)
     local winId = win and win:id()
 
     -- Always cancel any previous minimize timer for this window
     cancelPendingMinimize(winId)
 
-    if monitorConfig and monitorConfig.moveMinimized == true then
+    local delay = monitorConfig and tonumber(monitorConfig.timerToMinimize)
+
+    if delay and delay > 0 then
+        hs.alert.show(string.format("⏳ Auto-minimizing in %d seconds", delay), 2)
+
         if winId then
-            print(string.format("Scheduling minimize in 3s for window ID %s", tostring(winId)))
-            pendingMinimizeTimers[winId] = hs.timer.doAfter(3.0, function()
+            print(string.format("Scheduling minimize in %ds for window ID %s", delay, tostring(winId)))
+            pendingMinimizeTimers[winId] = hs.timer.doAfter(delay, function()
                 pendingMinimizeTimers[winId] = nil
                 if win and not win:isMinimized() then
                     win:minimize()
-                    print(string.format("Window ID %s minimized after 3s delay", tostring(winId)))
+                    print(string.format("Window ID %s minimized after %ds delay", delay, tostring(winId)))
                 end
             end)
         else

@@ -40,7 +40,7 @@
       "Built-in Display",
       "Built-in Retina Display"
     ],
-    "moveMinimized": true,
+    "timerToMinimize": 3,
     "margins": {
       "left": 0.05
     }
