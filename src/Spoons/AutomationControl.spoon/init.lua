@@ -4,12 +4,15 @@
 --- Handles lifecycle (start/stop) for registered hotkeys and Spoons
 ---
 
+local watchdog = require("common.watchdog")
+local configParser = require("common.config_parser")
+
 local obj = {}
 obj.__index = obj
 
 -- Metadata
 obj.name = "AutomationControl"
-obj.version = "1.4"
+obj.version = "1.5"
 obj.author = "Stepheson Alves"
 obj.license = "MIT - https://opensource.org/licenses/MIT"
 
@@ -17,6 +20,8 @@ obj.license = "MIT - https://opensource.org/licenses/MIT"
 local registeredHotkeys = {}
 local registeredSpoons = {}
 local isActive = true -- Default to active (started) unless stopped explicitly
+local settings = {}
+local settingsFile = hs.configdir .. "/Spoons/_conf_spoons/AutomationControlSettings.json"
 
 -- ========== HOTKEY MANAGEMENT ==========
 
@@ -79,6 +84,20 @@ function obj:registerSpoon(spoonObj)
     return self
 end
 
+-- ========== WATCHDOG REGISTRY ==========
+
+--- Register an eventtap or module for continuous watchdog monitoring
+-- Delegates to common.watchdog for defensive validation and automatic recovery
+-- @param moduleRef table|userdata The module or eventtap reference
+-- @param id string|nil Optional identifier
+-- @return self
+function obj:watchdogreg(moduleRef, id)
+    if watchdog and watchdog.register then
+        watchdog.register(moduleRef, id)
+    end
+    return self
+end
+
 -- ========== LIFECYCLE ==========
 
 --- Start automation (enable managed hotkeys)
@@ -107,6 +126,15 @@ function obj:start()
         end
     end
 
+    -- Reload settings and ensure watchdog sweep interval is up-to-date
+    self:loadSettings()
+
+    -- Start watchdog monitoring
+    if watchdog and watchdog.start then
+        print("AutomationControl: starting watchdog")
+        watchdog.start()
+    end
+
     -- Show status
     print("AutomationControl: showing status")
     local spoonNames = {}
@@ -132,6 +160,12 @@ function obj:stop()
         if s.stop then s:stop() end
     end
 
+    -- Stop watchdog monitoring
+    if watchdog and watchdog.stop then
+        print("AutomationControl: stopping watchdog")
+        watchdog.stop()
+    end
+
     hs.alert.show("🔴 Automation Paused")
 
     return self
@@ -146,8 +180,22 @@ function obj:toggle()
     end
 end
 
+--- Load settings from AutomationControlSettings.json
+function obj:loadSettings()
+    settings = configParser.loadConfig(settingsFile) or {}
+    if settings.watchdog_sweep_interval and watchdog then
+        local interval = tonumber(settings.watchdog_sweep_interval)
+        if interval and interval > 0 then
+            watchdog.SWEEP_INTERVAL = interval
+            print(string.format("AutomationControl: configured watchdog sweep interval to %ds", interval))
+        end
+    end
+    return self
+end
+
 --- Initialize the Spoon
 function obj:init()
+    self:loadSettings()
     return self
 end
 

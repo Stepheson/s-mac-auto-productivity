@@ -4,6 +4,7 @@ print("===========================================")
 print("Loading Hammerspoon Configuration...")
 print("===========================================")
 
+
 -- ========== LOAD SPOONS ==========
 hs.loadSpoon("AutomationControl")
 hs.loadSpoon("MonitorWindowApp")
@@ -14,6 +15,7 @@ hs.loadSpoon("EasyLoadModules")
 -- ========== SIDE HOTKEY MODULE ==========
 local SideHotkey = require("common.side_hotkey")
 local WindowGenerator = require("common.window_generator")
+local TMirror = require("extra.toggleMirrorSt") -- Automatizar e Modulerizar depois
 
 
 -- ========== HOTKEYS ==================== HOTKEYS ==========
@@ -30,65 +32,70 @@ end)
 
 
 
--- Block the left command to prevent accidental closing.
-spoon.AutomationControl:register(SideHotkey.bind({ "leftCmd" }, "h", function() end))
-spoon.AutomationControl:register(SideHotkey.bind({ "leftCmd" }, "q", function() end))
--- System is not managed by AutomationControl.
---hs.hotkey.bind({ "cmd" }, "h", function() end)
-
-
-
--- Monitor Navigation
-spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "§", function()
+--# Monitor Navigation  ------  ------  ------  ------  ------  ------  ------  ------
+spoon.AutomationControl:register(SideHotkey.bind({ "rightAlt" }, "l", function()
   spoon.MonitorWindowApp:loadPosition()
 end))
 
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "1", function()
   spoon.MonitorWindowApp:moveToMonitor({
     [1] = "builtin_standard_margin_spaceleft",
-    [2] = "monitor_MX279_margin_spaceleft",
-    [3] = "monitor_MX279_margin_spaceleft",
+    [2] = "builtin_standard_margin_spaceleft",
+    [3] = "builtin_standard_minimized"
   }, true)
 end))
 
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "2", function()
   spoon.MonitorWindowApp:moveToMonitor({
-    [1] = "builtin_standard_margin_spaceleft",
+    [1] = "",
     [2] = "dell_standard_margin_spaceleft",
-    [3] = "dell_standard_margin_spaceleft"
+    [3] = "dell_standard_margin_spaceleft",
   }, true)
 end))
 
-spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt", "shift" }, "2", function()
-  spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
-end))
-
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "3", function()
-  spoon.MonitorWindowApp:moveToMonitor("builtin_standard_margin_spaceleft", true)
+  spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft", true)
 end))
 
+-- spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt", "shift" }, "2", function()
+--   spoon.MonitorWindowApp:moveToMonitor("monitor_MX279_margin_spaceleft_top", true)
+-- end))
 
+-- "builtin_standard_margin_spaceleft", "dell_standard_margin_spaceleft", "monitor_MX279_margin_spaceleft"
 
--- App Cycling
+--# App Cycling  ------  ------  ------  ------  ------  ------  ------  ------
 spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "tab", function()
-  spoon.AppCycler:cycle(0)
+  spoon.AppCycler:cycle(2) --0=All (default), 1=Apps Only, 2=Instances Only
 end))
 
-
-
--- Window Modules
-spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "q", function()
+--# Window Modules  ------  ------  ------  ------  ------  ------  ------  ------
+spoon.AutomationControl:register(SideHotkey.bind({ "leftAlt" }, "'", function()
   WindowGenerator:show()
 end))
 
 
 
--- Debug Tools
-spoon.AutomationControl:register(SideHotkey.bind({ "rightAlt", "rightShift" }, "m", function()
+--# Debug Tools  ------  ------  ------  ------  ------  ------  ------  ------
+spoon.AutomationControl:register(SideHotkey.bind({ "rightAlt", "rightShift" }, "d", function()
   local managerMonitorsMac = require("common.manager_monitors_mac")
   managerMonitorsMac.printConnectedMonitors()
 end))
 
+
+
+
+-- ========== HOTKEYS CUSTOM OU NÃO MODULARIZADOS
+
+-- Block the left command to prevent accidental closing.
+spoon.AutomationControl:register(SideHotkey.bind({ "leftCmd" }, "h", function() end))
+--spoon.AutomationControl:register(SideHotkey.bind({ "leftCmd" }, "q", function() end))
+-- System is not managed by AutomationControl.
+--hs.hotkey.bind({ "cmd" }, "h", function() end)
+
+spoon.AutomationControl:register(SideHotkey.bind({ "rightAlt" }, "m", function()
+  TMirror:toggleMirror()
+  print("[KVM Mirror] Alt+M para toggle mirror do DELL P2719H")
+end))
 
 
 -- ========== AUTOMATION CONTROL INJECTION ==========
@@ -96,6 +103,11 @@ if spoon.AutomationControl then
   spoon.AutomationControl:registerSpoon(spoon.MonitorWindowApp)
   spoon.AutomationControl:registerSpoon(spoon.AppCycler)
   spoon.AutomationControl:registerSpoon(spoon.EasyLoadModules)
+
+  -- Watchdog registration for persistent keyboard eventtaps
+  spoon.AutomationControl:watchdogreg(SideHotkey.tracker, "SideHotkey.tracker")
+  spoon.AutomationControl:watchdogreg(SideHotkey.listener, "SideHotkey.listener")
+
   spoon.AutomationControl:start()
 else
   print("⚠️ AutomationControl Spoon not found. Hotkeys active in unmanaged mode.")

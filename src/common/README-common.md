@@ -9,6 +9,8 @@ Shared libraries used by Spoons and Modules. These abstractions ensure consisten
 | `window_generator.lua`     | **UI Hub**. Creates the searchable menus (Choosers) used by EasyLoadModules and others. |
 | `side_hotkey.lua`          | **Input**. Distinguishes between Left/Right modifiers (e.g., LeftAlt vs RightAlt).      |
 | `manager_monitors_mac.lua` | **Display**. Logic for calculating window positions and monitor geometry.               |
+| `manager_mouse.lua`        | **Mouse**. Coordinates mouse position, screen detection, and window-under-cursor resolution. |
+| `watchdog.lua`             | **Reliability**. Centralized eventtap and resource watchdog against OS latency drops.    |
 | `config_parser.lua`        | **Data**. robust JSON parsing for configuration files.                                  |
 | `file_manager.lua`         | **I/O**. Safe file reading/writing operations.                                          |
 | `storage_manager.lua`      | **Persistence**. State saving/loading (e.g., window positions).                         |
