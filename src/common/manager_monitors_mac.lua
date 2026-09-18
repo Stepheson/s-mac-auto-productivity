@@ -92,24 +92,81 @@ function M.getVisibleWindowsOnScreen(screenId, mode)
     return visibleWindows
 end
 
--- ========== MONITOR SEARCH ==========
+-- ========== MONITOR SEARCH & CACHE ==========
 
---- Get monitor object by exact name
--- @param exactName string Name of the monitor to find
--- @return userdata|nil hs.screen object or nil if not found
-function M.getMonitorByName(exactName)
-    local screens = hs.screen.allScreens()
-    for _, s in ipairs(screens) do
-        if s:name() == exactName then
-            return s
-        end
+local cachedScreens = nil
+local screenWatcher = nil
+
+--- Refresh internal screen cache from hardware
+local function refreshScreens()
+    cachedScreens = hs.screen.allScreens()
+    return cachedScreens
+end
+
+--- Initialize screen change watcher if not already running
+local function initWatcher()
+    if not screenWatcher then
+        screenWatcher = hs.screen.watcher.new(function()
+            refreshScreens()
+        end)
+        screenWatcher:start()
     end
-    return nil
+end
+
+--- Get all connected screens (cached by default, with automatic event-driven updates)
+-- @param forceRefresh boolean (optional) Force query to hardware
+-- @return table Array of hs.screen objects
+function M.getAllScreens(forceRefresh)
+    initWatcher()
+    if forceRefresh or not cachedScreens then
+        return refreshScreens()
+    end
+    return cachedScreens
+end
+
+--- Get monitor object by name (string) or list of candidate names (table)
+-- Uses memory cache for instant resolution, with automatic on-demand hardware refresh if not found
+-- @param monitorName string|table Name or array of candidate names to find
+-- @return userdata|nil hs.screen object or nil if not found
+function M.getMonitorByName(monitorName)
+    if not monitorName then return nil end
+
+    local names = type(monitorName) == "table" and monitorName or { monitorName }
+
+    local function findIn(screens)
+        for _, targetName in ipairs(names) do
+            for _, s in ipairs(screens) do
+                if s:name() == targetName then
+                    return s
+                end
+            end
+        end
+        return nil
+    end
+
+    -- 1. Try cache (0ms, fast path)
+    local screen = findIn(M.getAllScreens())
+
+    -- 2. Fallback on-demand: query hardware if not found (handles sleep/wake or newly attached display)
+    if not screen then
+        screen = findIn(M.getAllScreens(true))
+    end
+
+    return screen
+end
+
+--- Stop screen watcher and clear cache
+function M.stopWatcher()
+    if screenWatcher then
+        screenWatcher:stop()
+        screenWatcher = nil
+    end
+    cachedScreens = nil
 end
 
 --- Debug: Print all connected monitors
 function M.printConnectedMonitors()
-    local screens = hs.screen.allScreens()
+    local screens = M.getAllScreens(true)
     print("\n[DEBUG] Connected Monitors:")
     for i, s in ipairs(screens) do
         print(string.format("  %d. Name: '%s' | ID: %s", i, s:name(), s:id()))

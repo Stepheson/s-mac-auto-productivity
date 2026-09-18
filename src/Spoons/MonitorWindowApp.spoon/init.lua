@@ -46,21 +46,6 @@ local function getMonitorConfigByPositionID(positionID)
     return nil
 end
 
-local function findScreenByName(monitorName)
-    -- Aceita tanto string quanto array
-    local names = type(monitorName) == "table" and monitorName or { monitorName }
-
-    for _, name in ipairs(names) do
-        local screen = managerMonitorsMac.getMonitorByName(name)
-        if screen then
-            print(string.format("✅ Monitor encontrado com nome: '%s'", name))
-            return screen
-        end
-    end
-
-    return nil
-end
-
 local function calculateTargetFrame(screenFrame, margins)
     margins = margins or {}
 
@@ -77,15 +62,63 @@ local function calculateTargetFrame(screenFrame, margins)
     }
 end
 
---- Handle post-move window state (focus vs. minimize)
+-- Table tracking pending minimize timers by window ID
+local pendingMinimizeTimers = {}
+
+--- Cancel pending minimize timer for a specific window
+-- @param winId number|nil Window ID
+local function cancelPendingMinimize(winId)
+    if winId and pendingMinimizeTimers[winId] then
+        pendingMinimizeTimers[winId]:stop()
+        pendingMinimizeTimers[winId] = nil
+        print(string.format("Cancelled pending minimize timer for window ID %s", tostring(winId)))
+    end
+end
+
+--- Handle post-move window state (focus vs. deferred minimize)
 -- @param win userdata Target window object
 -- @param monitorConfig table Monitor configuration table containing optional moveMinimized
 local function handlePostMoveWindowState(win, monitorConfig)
+    local winId = win and win:id()
+
+    -- Always cancel any previous minimize timer for this window
+    cancelPendingMinimize(winId)
+
     if monitorConfig and monitorConfig.moveMinimized == true then
-        win:minimize()
+        if winId then
+            print(string.format("Scheduling minimize in 3s for window ID %s", tostring(winId)))
+            pendingMinimizeTimers[winId] = hs.timer.doAfter(3.0, function()
+                pendingMinimizeTimers[winId] = nil
+                if win and not win:isMinimized() then
+                    win:minimize()
+                    print(string.format("Window ID %s minimized after 3s delay", tostring(winId)))
+                end
+            end)
+        else
+            win:minimize()
+        end
     else
         win:focus()
     end
+end
+
+--- Apply margins, delegate post-move state, and notify
+-- @param win userdata Target window object
+-- @param screenFrame table Target screen frame
+-- @param monitorConfig table Monitor configuration
+local function applyMarginsAndFinalizePlacement(win, screenFrame, monitorConfig)
+    local targetFrame = calculateTargetFrame(screenFrame, monitorConfig.margins)
+    win:setFrame(targetFrame, 0)
+
+    handlePostMoveWindowState(win, monitorConfig)
+
+    print(string.format("Window moved to config '%s' on monitor '%s'",
+        monitorConfig.positionID, monitorConfig.monitorName))
+
+    hs.notify.new({
+        title = "Hammerspoon",
+        informativeText = string.format("Moved to %s", monitorConfig.positionID)
+    }):send()
 end
 
 --- Internal function to move window to monitor
@@ -100,7 +133,7 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
     end
 
     -- Use monitorName to find the physical screen
-    local targetScreen = findScreenByName(monitorConfig.monitorName)
+    local targetScreen = managerMonitorsMac.getMonitorByName(monitorConfig.monitorName)
 
     if not targetScreen then
         print(string.format("Monitor '%s' not found (disconnected) for config '%s'",
@@ -112,34 +145,9 @@ local function moveWindowToMonitorInternal(monitorConfig, targetWindow)
         return false
     end
 
+    -- Apply target frame directly (atomic single-step placement across displays)
     local screenFrame = targetScreen:frame()
-    local currentFrame = win:frame()
-
-    -- STEP 1: Move to center of monitor
-    local tempFrame = {
-        x = screenFrame.x + (screenFrame.w - currentFrame.w) / 2,
-        y = screenFrame.y + (screenFrame.h - currentFrame.h) / 2,
-        w = currentFrame.w,
-        h = currentFrame.h
-    }
-
-    win:setFrame(tempFrame, 0)
-
-    -- STEP 2: Apply margins after delay
-    hs.timer.doAfter(0.2, function()
-        local targetFrame = calculateTargetFrame(screenFrame, monitorConfig.margins)
-        win:setFrame(targetFrame, 0)
-
-        handlePostMoveWindowState(win, monitorConfig)
-
-        print(string.format("Window moved to config '%s' on monitor '%s'",
-            monitorConfig.positionID, monitorConfig.monitorName))
-
-        hs.notify.new({
-            title = "Hammerspoon",
-            informativeText = string.format("Moved to %s", monitorConfig.positionID)
-        }):send()
-    end)
+    applyMarginsAndFinalizePlacement(win, screenFrame, monitorConfig)
 
     return true
 end
@@ -158,14 +166,14 @@ function obj:moveToMonitor(positionID, shouldSave)
     end
 
     local actualPositionID = positionID
-    local nscreenw = #hs.screen.allScreens()
+    local nscreenw = #managerMonitorsMac.getAllScreens()
 
     if type(positionID) == "table" then
         actualPositionID = positionID[nscreenw]
 
         if not actualPositionID then
             hs.alert.show(
-            string.format("⚠️ No configuration created for this shortcut with %d monitor(s) specified", nscreenw), 4)
+                string.format("⚠️ No configuration created for this shortcut with %d monitor(s) specified", nscreenw), 4)
             return self
         end
     end
@@ -223,7 +231,7 @@ function obj:saveCurrentPosition(positionID)
     local appName = app and app:name() or "Unknown"
 
     -- Determine current number of screens
-    local screens = hs.screen.allScreens()
+    local screens = managerMonitorsMac.getAllScreens()
     local nscreenw = #screens
 
     -- Initialize array for this window if it doesn't exist
@@ -280,7 +288,7 @@ function obj:loadPosition()
 
     local allWindows = hs.window.allWindows()
     local restored = 0
-    local nscreenw = #hs.screen.allScreens()
+    local nscreenw = #managerMonitorsMac.getAllScreens()
     print(string.format("[Load] Restoring for %d screen(s)", nscreenw))
 
     -- Match by window_id
@@ -391,6 +399,7 @@ end
 
 function obj:init()
     hs.window.animationDuration = 0
+    hs.window.setFrameCorrectness = false
     print("MonitorWindowApp Spoon: init() called")
 
     -- Start Auto-Reload
@@ -411,6 +420,11 @@ function obj:start()
 end
 
 function obj:stop()
+    for winId, timer in pairs(pendingMinimizeTimers) do
+        if timer then timer:stop() end
+    end
+    pendingMinimizeTimers = {}
+    managerMonitorsMac.stopWatcher()
     print("MonitorWindowApp Spoon: Stopped")
     return self
 end
